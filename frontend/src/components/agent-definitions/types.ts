@@ -25,6 +25,7 @@ export interface WorkflowEdgeData {
   outcomeName?: string;
   sourceStep?: string;
   toolId?: string;
+  order?: number;
   controlPoints?: AgentViewLayoutNode[];
   snapEnabled?: boolean;
   onControlPointChange?: (
@@ -70,6 +71,7 @@ export interface OutcomeFormState {
   endWorkflow: boolean;
   conditionType: string;
   conditionParameters: KeyValueEntry[];
+  order: string;
 }
 
 export interface ToolFormState {

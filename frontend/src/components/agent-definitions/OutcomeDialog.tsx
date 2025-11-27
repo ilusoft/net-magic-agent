@@ -13,7 +13,7 @@ interface OutcomeDialogProps {
   onClose: () => void;
   onSubmit: FormEventHandler<HTMLFormElement>;
   onFieldChange: (
-    field: "name" | "nextStep" | "conditionType"
+    field: "name" | "nextStep" | "conditionType" | "order"
   ) => ChangeEventHandler<HTMLInputElement | HTMLSelectElement>;
   onEndWorkflowToggle: ChangeEventHandler<HTMLInputElement>;
   onAddConditionParameter: () => void;
@@ -62,6 +62,25 @@ export function OutcomeDialog({
               placeholder="Outcome name (e.g. success, failure)"
               aria-invalid={outcomeFormError ? true : undefined}
             />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-semibold uppercase text-foreground/60">
+              Evaluation Order
+            </label>
+            <input
+              type="number"
+              min={1}
+              step={1}
+              value={outcomeForm.order}
+              onChange={onFieldChange("order")}
+              className="rounded-md border border-border bg-card px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              placeholder="1"
+            />
+            <p className="text-xs text-foreground/60">
+              Outcomes are evaluated from lowest order to highest before hitting
+              a default "always" outcome.
+            </p>
           </div>
 
           <div className="flex flex-col gap-2">

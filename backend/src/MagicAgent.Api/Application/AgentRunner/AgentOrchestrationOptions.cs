@@ -137,6 +137,9 @@ public sealed class AgentStepOutcomeDefinition
 
     [JsonPropertyName("endWorkflow")]
     public bool EndWorkflow { get; init; }
+
+    [JsonPropertyName("order")]
+    public int? Order { get; init; }
 }
 
 public sealed class AgentStepOutcomeConditionDefinition

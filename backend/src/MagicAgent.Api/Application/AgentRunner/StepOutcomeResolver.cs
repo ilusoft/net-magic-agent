@@ -21,13 +21,24 @@ internal static class StepOutcomeResolver
             return new StepOutcomeResolution(null, GetSequentialNextStep(definition, currentStep), false);
         }
 
-        foreach (var outcome in currentStep.Outcomes)
-        {
-            if (outcome is null)
-            {
-                continue;
-            }
+        var orderedOutcomes = currentStep.Outcomes
+            .Select((outcome, index) => outcome is null
+                ? null
+                : new
+                {
+                    Outcome = outcome,
+                    OutcomeOrder = outcome.Order ?? int.MaxValue,
+                    Index = index,
+                })
+            .Where(wrapper => wrapper is not null)
+            .Select(wrapper => wrapper!)
+            .OrderBy(wrapper => wrapper.OutcomeOrder)
+            .ThenBy(wrapper => wrapper.Index)
+            .Select(wrapper => wrapper.Outcome)
+            .ToList();
 
+        foreach (var outcome in orderedOutcomes)
+        {
             if (!EvaluateOutcomeCondition(definition, currentStep, outcome, normalizedOutput, logger))
             {
                 continue;

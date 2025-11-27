@@ -3,6 +3,7 @@ import type { ChangeEvent, FormEvent } from "react";
 
 import type {
   AgentDefinitionsDocument,
+  AgentStepDefinition,
   AgentStepOutcomeDefinition,
 } from "../../../types/agents";
 import type { OutcomeFormState, WorkflowEdge } from "../types";
@@ -32,7 +33,7 @@ interface OutcomeDialogBindings {
   onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onFieldChange: (
-    field: "name" | "nextStep" | "conditionType"
+    field: "name" | "nextStep" | "conditionType" | "order"
   ) => (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
   onEndWorkflowToggle: (event: ChangeEvent<HTMLInputElement>) => void;
   onAddConditionParameter: () => void;
@@ -87,8 +88,14 @@ export function useOutcomeDialog({
   const buildOutcomeFormState = useCallback(
     (
       sourceStep: string,
-      outcome: AgentStepOutcomeDefinition | null
+      outcome: AgentStepOutcomeDefinition | null,
+      options?: { defaultOrder?: number }
     ): OutcomeFormState => {
+      const resolvedOrder =
+        outcome?.order !== undefined && outcome.order > 0
+          ? outcome.order
+          : options?.defaultOrder;
+
       return {
         sourceStep,
         name: outcome?.name ?? "",
@@ -96,7 +103,119 @@ export function useOutcomeDialog({
         endWorkflow: outcome?.endWorkflow ?? false,
         conditionType: outcome?.condition?.type ?? "",
         conditionParameters: entriesFromRecord(outcome?.condition?.parameters),
+        order: resolvedOrder ? String(resolvedOrder) : "",
       };
+    },
+    []
+  );
+
+  const computeNormalizedOrder = useCallback(
+    (
+      candidate: AgentStepOutcomeDefinition | null | undefined,
+      index: number
+    ) => {
+      if (candidate?.order && candidate.order > 0) {
+        return candidate.order;
+      }
+
+      return index + 1;
+    },
+    []
+  );
+
+  const computeNextOrderForStep = useCallback(
+    (step: AgentStepDefinition) => {
+      if (!Array.isArray(step.outcomes) || step.outcomes.length === 0) {
+        return 1;
+      }
+
+      const normalizedOrders = step.outcomes.map((candidate, index) =>
+        computeNormalizedOrder(candidate, index)
+      );
+
+      return Math.max(...normalizedOrders) + 1;
+    },
+    [computeNormalizedOrder]
+  );
+
+  const ensureUniqueOutcomeOrders = useCallback(
+    (step: AgentStepDefinition, priorityOutcomeName: string) => {
+      if (!Array.isArray(step.outcomes) || step.outcomes.length === 0) {
+        return;
+      }
+
+      const positiveOrder = (
+        candidate: AgentStepOutcomeDefinition | null | undefined
+      ) =>
+        candidate?.order && candidate.order > 0 ? candidate.order : undefined;
+
+      let maxOrder = step.outcomes.reduce((highest, candidate) => {
+        const candidateOrder = positiveOrder(candidate);
+        return candidateOrder && candidateOrder > highest
+          ? candidateOrder
+          : highest;
+      }, 0);
+
+      const claimedOrders = new Set<number>();
+
+      const assignNextOrder = (outcome: AgentStepOutcomeDefinition | null) => {
+        if (!outcome) {
+          return;
+        }
+
+        maxOrder = Math.max(maxOrder, 0) + 1;
+        while (claimedOrders.has(maxOrder)) {
+          maxOrder += 1;
+        }
+
+        outcome.order = maxOrder;
+        claimedOrders.add(maxOrder);
+      };
+
+      const claimExistingOrder = (
+        outcome: AgentStepOutcomeDefinition | null
+      ): boolean => {
+        if (!outcome) {
+          return false;
+        }
+
+        const desired = positiveOrder(outcome);
+        if (desired && !claimedOrders.has(desired)) {
+          claimedOrders.add(desired);
+          if (desired > maxOrder) {
+            maxOrder = desired;
+          }
+          return true;
+        }
+
+        return false;
+      };
+
+      const priorityOutcome = step.outcomes.find(
+        (candidate) => candidate?.name === priorityOutcomeName
+      );
+
+      if (priorityOutcome) {
+        if (!claimExistingOrder(priorityOutcome)) {
+          assignNextOrder(priorityOutcome);
+        }
+      }
+
+      for (const outcome of step.outcomes) {
+        if (!outcome) {
+          continue;
+        }
+
+        if (priorityOutcome && outcome === priorityOutcome) {
+          continue;
+        }
+
+        if (claimExistingOrder(outcome)) {
+          continue;
+        }
+
+        assignNextOrder(outcome);
+      }
     },
     []
   );
@@ -146,12 +265,21 @@ export function useOutcomeDialog({
         return;
       }
 
-      const existingOutcome = step.outcomes?.find(
+      const existingOutcomeIndex = step.outcomes?.findIndex(
         (candidate) => candidate.name === edge.data?.outcomeName
       );
+      const existingOutcome =
+        existingOutcomeIndex !== undefined && existingOutcomeIndex >= 0
+          ? step.outcomes?.[existingOutcomeIndex] ?? null
+          : null;
       setMode(existingOutcome ? "edit" : "create");
       setOutcomeForm(
-        buildOutcomeFormState(sourceStep, existingOutcome ?? null)
+        buildOutcomeFormState(sourceStep, existingOutcome ?? null, {
+          defaultOrder:
+            existingOutcomeIndex !== undefined && existingOutcomeIndex >= 0
+              ? existingOutcomeIndex + 1
+              : undefined,
+        })
       );
       setOutcomeFormError(null);
       setIsOpen(true);
@@ -195,12 +323,16 @@ export function useOutcomeDialog({
         return;
       }
 
-      const baseForm = buildOutcomeFormState(step.name, null);
+      const nextOrder = computeNextOrderForStep(step);
+      const baseForm = buildOutcomeFormState(step.name, null, {
+        defaultOrder: nextOrder,
+      });
       const mergedForm: OutcomeFormState = {
         ...baseForm,
         ...overrides,
         conditionParameters:
           overrides?.conditionParameters ?? baseForm.conditionParameters,
+        order: overrides?.order ?? baseForm.order,
       };
 
       setMode("create");
@@ -212,7 +344,7 @@ export function useOutcomeDialog({
   );
 
   const handleFieldChange = useCallback(
-    (field: "name" | "nextStep" | "conditionType") =>
+    (field: "name" | "nextStep" | "conditionType" | "order") =>
       (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const value = event.target.value;
         setOutcomeForm((previous) =>
@@ -310,6 +442,14 @@ export function useOutcomeDialog({
         return;
       }
 
+      const trimmedOrder = outcomeForm.order.trim();
+      const parsedOrder = Number.parseInt(trimmedOrder, 10);
+
+      if (!trimmedOrder || Number.isNaN(parsedOrder) || parsedOrder <= 0) {
+        setOutcomeFormError("Outcome order must be a positive integer.");
+        return;
+      }
+
       applyDocumentUpdate((draft) => {
         const agent = draft.agents.find(
           (candidate) => candidate.id === activeWorkflowId
@@ -351,6 +491,7 @@ export function useOutcomeDialog({
             : outcomeForm.nextStep.trim() || undefined,
           endWorkflow: outcomeForm.endWorkflow || undefined,
           condition,
+          order: parsedOrder,
         };
 
         if (!updatedOutcome.endWorkflow) {
@@ -382,6 +523,8 @@ export function useOutcomeDialog({
           step.outcomes.push(updatedOutcome);
         }
 
+        ensureUniqueOutcomeOrders(step, trimmedName);
+
         step.outcomes = step.outcomes.map((candidate) => ({
           ...candidate,
           name: candidate.name.trim(),
@@ -401,6 +544,8 @@ export function useOutcomeDialog({
       dialogTarget,
       applyDocumentUpdate,
       reset,
+      computeNormalizedOrder,
+      ensureUniqueOutcomeOrders,
     ]
   );
 

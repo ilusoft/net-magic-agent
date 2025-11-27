@@ -271,6 +271,24 @@ export function buildWorkflowGraph(agent: AgentDefinition): WorkflowGraph {
     }
 
     step.outcomes.forEach((outcome, outcomeIndex) => {
+      const normalizedOrder =
+        typeof outcome.order === "number" && outcome.order > 0
+          ? outcome.order
+          : outcomeIndex + 1;
+      const outcomeLabelParts: string[] = [];
+
+      if (normalizedOrder) {
+        outcomeLabelParts.push(String(normalizedOrder));
+      }
+
+      if (outcome.name) {
+        outcomeLabelParts.push(outcome.name);
+      }
+
+      const outcomeLabel = outcomeLabelParts.length
+        ? outcomeLabelParts.join(" - ")
+        : "outcome";
+
       let targetId: string;
 
       if (outcome.nextStep) {
@@ -371,11 +389,12 @@ export function buildWorkflowGraph(agent: AgentDefinition): WorkflowGraph {
         target: targetId,
         targetHandle: nodeIds.has(targetId) ? "input" : undefined,
         type: WORKFLOW_EDGE_TYPE,
-        label: outcome.name ?? "outcome",
+        label: outcomeLabel,
         data: {
           kind: "outcome",
           outcomeName: outcome.name ?? undefined,
           sourceStep: step.name,
+          order: normalizedOrder,
           controlPoints: layoutEdge?.controlPoints,
         },
       });

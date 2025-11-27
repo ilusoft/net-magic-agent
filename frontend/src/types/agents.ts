@@ -54,6 +54,7 @@ export interface AgentStepOutcomeDefinition {
   nextStep?: string;
   condition?: AgentStepOutcomeConditionDefinition;
   endWorkflow?: boolean;
+  order?: number;
 }
 
 export interface AgentStepOutcomeConditionDefinition {
