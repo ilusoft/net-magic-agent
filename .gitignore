@@ -1,2 +1,7 @@
 backend/src/MagicAgent.Api/bin/
 backend/src/MagicAgent.Api/obj/
+frontend/.env
+frontend/.env.local
+frontend/.env.*
+backend/src/MagicAgent.Api/Configurations/agents.json
+backend/src/MagicAgent.Api/appsettings.*.json

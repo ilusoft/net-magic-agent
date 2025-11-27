@@ -5,6 +5,7 @@ import type {
   AgentViewLayoutNode,
 } from "../../types/agents";
 import type { WorkflowEdge, WorkflowGraph, WorkflowNode } from "./types";
+import { isWorkflowDebugLoggingEnabled } from "./utils/workflowDebug";
 
 const isBrowserEnvironment = typeof window !== "undefined";
 const nodeEnv =
@@ -71,6 +72,7 @@ const TERMINATION_NODE_HEIGHT =
 export function buildWorkflowGraph(agent: AgentDefinition): WorkflowGraph {
   const nodes: WorkflowNode[] = [];
   const edges: WorkflowEdge[] = [];
+  const workflowDebugLogging = isWorkflowDebugLoggingEnabled();
 
   if (!agent.steps || agent.steps.length === 0) {
     nodes.push({
@@ -131,8 +133,8 @@ export function buildWorkflowGraph(agent: AgentDefinition): WorkflowGraph {
   const resolvedStartPosition = startPosition ?? { x: 0, y: 0 };
   const startNodeHasSavedPosition = Boolean(startPosition);
 
-  if (isBrowserEnvironment && nodeEnv !== "production") {
-    console.debug("[WorkflowGraph] Start node layout", {
+  if (workflowDebugLogging) {
+    console.log("[WorkflowGraph] Start node layout", {
       agentId: agent.id,
       startNodeId,
       availableKeys: Object.keys(layoutPositions).filter(
@@ -161,10 +163,12 @@ export function buildWorkflowGraph(agent: AgentDefinition): WorkflowGraph {
   const fallbackStartStep = flaggedStartStep ?? agent.steps[0];
   const desiredStartTargetStepName = fallbackStartStep?.name ?? null;
 
-  console.info("[WorkflowGraph] desired start edge", {
-    workflowId: agent.id,
-    desiredStartTargetStepName,
-  });
+  if (workflowDebugLogging) {
+    console.log("[WorkflowGraph] desired start edge", {
+      workflowId: agent.id,
+      desiredStartTargetStepName,
+    });
+  }
 
   agent.steps.forEach((step, index) => {
     const nodeId = `${agent.id}-${step.name}`;

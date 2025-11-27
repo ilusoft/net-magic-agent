@@ -149,6 +149,9 @@ export function useWorkflowCanvas({
   );
   const [activeEdgeId, setActiveEdgeId] = useState<string | null>(null);
   const [snapEnabled, setSnapEnabled] = useState(true);
+  const liveViewportRef = useRef<AgentViewLayoutViewport | null>(
+    viewport ?? null
+  );
   const workflowDebugLogging = isWorkflowDebugLoggingEnabled();
   const layoutLoggingEnabled =
     workflowDebugLogging ||
@@ -162,6 +165,14 @@ export function useWorkflowCanvas({
     const edgesSignature = getEdgesSignature(graph.edges);
     return `${nodesSignature}|${edgesSignature}`;
   }, [graph.edges, graph.nodes]);
+
+  useEffect(() => {
+    if (viewport) {
+      liveViewportRef.current = viewport;
+    } else if (activeWorkflowId === null) {
+      liveViewportRef.current = null;
+    }
+  }, [viewport, activeWorkflowId]);
   const persistNodePosition = useCallback(
     (workflowNode: WorkflowNode, position: { x: number; y: number }) => {
       if (!activeWorkflowId || workflowNode.data.kind === "empty") {
@@ -587,6 +598,8 @@ export function useWorkflowCanvas({
         return;
       }
 
+      liveViewportRef.current = nextViewport;
+
       applyDocumentUpdate((draft) => {
         const agent = draft.agents.find(
           (candidate) => candidate.id === activeWorkflowId
@@ -626,7 +639,7 @@ export function useWorkflowCanvas({
     setSnapEnabled,
     setActiveEdgeId: toggleActiveEdge,
     setNodePosition,
-    initialViewport: viewport ?? null,
+    initialViewport: liveViewportRef.current ?? viewport ?? null,
     handleViewportChange: persistViewport,
     graphSignature,
   };

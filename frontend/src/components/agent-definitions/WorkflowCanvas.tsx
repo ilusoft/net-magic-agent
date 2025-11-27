@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import ReactFlow, {
   Background,
   ControlButton,
@@ -78,6 +78,8 @@ export function WorkflowCanvas({
   const placementIndexRef = useRef(0);
   const workflowRef = useRef<string | null>(null);
   const lastEdgesSignatureRef = useRef<string>("");
+  const lastAppliedViewportSignatureRef = useRef<string | null>(null);
+  const skipNextViewportPersistRef = useRef(false);
 
   useEffect(() => {
     if (workflowRef.current === (activeWorkflowId ?? null)) {
@@ -91,31 +93,58 @@ export function WorkflowCanvas({
     initialFitRef.current = false;
   }, [activeWorkflowId]);
 
-  useEffect(() => {
-    const revisionChanged =
-      viewportRevision !== undefined &&
-      viewportRevision !== lastViewportRevisionRef.current;
+  const nodesReady = nodes.length > 0;
+  const initialViewportTransform = useMemo(() => {
+    if (!initialViewport) {
+      return undefined;
+    }
 
-    if (initialFitRef.current && !revisionChanged) {
+    return {
+      x: initialViewport.position.x,
+      y: initialViewport.position.y,
+      zoom: initialViewport.zoom,
+    };
+  }, [initialViewport]);
+
+  useEffect(() => {
+    if (!nodesReady) {
       return;
     }
 
-    if (initialViewport) {
-      initialFitRef.current = true;
-      reactFlow.setViewport({
-        x: initialViewport.position.x,
-        y: initialViewport.position.y,
-        zoom: initialViewport.zoom,
-      });
+    const revisionChanged =
+      viewportRevision !== undefined &&
+      viewportRevision !== lastViewportRevisionRef.current;
+    const viewportSignature = initialViewport
+      ? `${initialViewport.position.x}:${initialViewport.position.y}:${initialViewport.zoom}`
+      : "fit";
+    const viewportChanged =
+      viewportSignature !== lastAppliedViewportSignatureRef.current;
+
+    if (!revisionChanged && !viewportChanged && initialFitRef.current) {
+      return;
+    }
+
+    if (initialViewportTransform) {
+      skipNextViewportPersistRef.current = true;
+      reactFlow.setViewport(initialViewportTransform);
     } else {
-      initialFitRef.current = true;
+      skipNextViewportPersistRef.current = true;
       reactFlow.fitView({ padding: 0.2, duration: 0 });
     }
+
+    initialFitRef.current = true;
+    lastAppliedViewportSignatureRef.current = viewportSignature;
 
     if (viewportRevision !== undefined) {
       lastViewportRevisionRef.current = viewportRevision;
     }
-  }, [initialViewport, reactFlow, viewportRevision]);
+  }, [
+    activeWorkflowId,
+    initialViewportTransform,
+    nodesReady,
+    reactFlow,
+    viewportRevision,
+  ]);
 
   useEffect(() => {
     if (nodes.length === 0) {
@@ -177,6 +206,7 @@ export function WorkflowCanvas({
       const latestNode = reactFlow.getNode(targetNode.id);
 
       if (latestNode) {
+        skipNextViewportPersistRef.current = true;
         reactFlow.fitView({
           nodes: [latestNode],
           padding: 0.3,
@@ -186,6 +216,7 @@ export function WorkflowCanvas({
       }
 
       const { zoom } = reactFlow.getViewport();
+      skipNextViewportPersistRef.current = true;
       reactFlow.setCenter(targetNode.position.x, targetNode.position.y, {
         zoom,
         duration: 400,
@@ -239,6 +270,11 @@ export function WorkflowCanvas({
         return;
       }
 
+      if (skipNextViewportPersistRef.current) {
+        skipNextViewportPersistRef.current = false;
+        return;
+      }
+
       onViewportChange({
         position: { x: viewport.x, y: viewport.y },
         zoom: viewport.zoom,
@@ -253,6 +289,7 @@ export function WorkflowCanvas({
       edges={edges}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
+      defaultViewport={initialViewportTransform}
       nodesConnectable={false}
       elementsSelectable={false}
       snapToGrid={snapEnabled}
