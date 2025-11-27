@@ -7,12 +7,6 @@ import type {
 import type { WorkflowEdge, WorkflowGraph, WorkflowNode } from "./types";
 import { isWorkflowDebugLoggingEnabled } from "./utils/workflowDebug";
 
-const isBrowserEnvironment = typeof window !== "undefined";
-const nodeEnv =
-  typeof globalThis !== "undefined"
-    ? (globalThis as any).process?.env?.NODE_ENV
-    : undefined;
-
 export const WORKFLOW_EDGE_TYPE = "workflowEdge";
 
 const VERTICAL_SPACING = 160;
