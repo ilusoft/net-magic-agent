@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
@@ -129,6 +130,13 @@ public sealed class DefaultAgentRunner(
                 break;
             }
 
+            _logger.LogInformation(
+                "[Workflow] Agent {AgentId} starting step {StepName} (type: {StepType}, iteration: {Iteration}).",
+                definition.Id,
+                stepDefinition.Name,
+                stepDefinition.Type,
+                executedSteps);
+
             var stepInput = pendingInput;
 
             if (!string.IsNullOrWhiteSpace(stepInput))
@@ -160,6 +168,8 @@ public sealed class DefaultAgentRunner(
                 stepTools = matchedTools;
             }
 
+            var stepStopwatch = Stopwatch.StartNew();
+
             var (executionResult, updatedConversationId, updatedThreadState, stepThreadContext) = await ExecuteStepAsync(
               definition,
               stepDefinition,
@@ -169,6 +179,8 @@ public sealed class DefaultAgentRunner(
               stepTools,
               sharedThreadState,
               cancellationToken).ConfigureAwait(false);
+
+            stepStopwatch.Stop();
 
             conversationId = updatedConversationId;
             pendingInput = DetermineNextStepInput(stepDefinition, stepInput, executionResult.Output);
@@ -186,6 +198,16 @@ public sealed class DefaultAgentRunner(
             };
 
             stepResults.Add(enrichedResult);
+
+            _logger.LogInformation(
+                "[Workflow] Agent {AgentId} completed step {StepName} in {ElapsedMs} ms. Outcome: {Outcome}, Next: {NextStep}, EndWorkflow: {EndWorkflow}, ToolError: {ToolErrorDetected}.",
+                definition.Id,
+                enrichedResult.Name,
+                stepStopwatch.ElapsedMilliseconds,
+                enrichedResult.Outcome ?? "(none)",
+                enrichedResult.EndWorkflow ? "(end)" : enrichedResult.NextStep ?? "(unspecified)",
+                enrichedResult.EndWorkflow,
+                enrichedResult.ToolErrorDetected);
 
             if (outcomeResolution.EndWorkflow)
             {
