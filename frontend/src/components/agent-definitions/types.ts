@@ -81,6 +81,9 @@ export interface ToolFormState {
   serverUrl: string;
   description: string;
   allowedTools: string;
+  forwardAuthorizationHeader: boolean;
+  authorizationHeaderName: string;
+  stopOnToolInitError: boolean;
 }
 
 export interface WorkflowFormState {

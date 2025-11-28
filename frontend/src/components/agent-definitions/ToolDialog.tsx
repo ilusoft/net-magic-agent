@@ -125,6 +125,44 @@ export function ToolDialog({
             </p>
           </div>
 
+          <div className="space-y-2 rounded-md border border-border px-3 py-2">
+            <label className="text-xs font-semibold uppercase text-foreground/60">
+              Authorization
+            </label>
+            <label className="flex items-center gap-2 text-sm text-foreground/80">
+              <input
+                type="checkbox"
+                checked={toolForm.forwardAuthorizationHeader}
+                onChange={onFieldChange("forwardAuthorizationHeader")}
+                className="h-4 w-4 rounded border-border"
+              />
+              Forward Authorization Header
+            </label>
+            <div className="flex flex-col gap-1 pl-6">
+              <label className="text-xs uppercase text-foreground/60">
+                Header Name
+              </label>
+              <input
+                type="text"
+                value={toolForm.authorizationHeaderName}
+                onChange={onFieldChange("authorizationHeaderName")}
+                className="rounded-md border border-border bg-card px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                placeholder="Authorization"
+                disabled={!toolForm.forwardAuthorizationHeader}
+              />
+            </div>
+          </div>
+
+          <label className="flex items-center gap-2 text-sm text-foreground/80">
+            <input
+              type="checkbox"
+              checked={toolForm.stopOnToolInitError}
+              onChange={onFieldChange("stopOnToolInitError")}
+              className="h-4 w-4 rounded border-border"
+            />
+            Stop workflow on tool initialization error
+          </label>
+
           {toolFormError ? (
             <p className="text-sm text-destructive">{toolFormError}</p>
           ) : null}

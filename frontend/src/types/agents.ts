@@ -75,6 +75,7 @@ export interface AgentToolDefinition {
   allowedTools?: string[];
   forwardAuthorizationHeader?: boolean;
   authorizationHeaderName?: string;
+  stopOnToolInitError?: boolean;
 }
 
 export interface AgentToolActionDefinition {

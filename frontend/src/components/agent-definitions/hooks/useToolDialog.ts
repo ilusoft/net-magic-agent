@@ -96,6 +96,10 @@ export function useToolDialog({
         serverUrl: existingTool?.serverUrl ?? "",
         description: existingTool?.description ?? "",
         allowedTools: existingTool?.allowedTools?.join(", ") ?? "",
+        forwardAuthorizationHeader:
+          existingTool?.forwardAuthorizationHeader ?? false,
+        authorizationHeaderName: existingTool?.authorizationHeaderName ?? "",
+        stopOnToolInitError: existingTool?.stopOnToolInitError ?? false,
       });
       setToolFormError(null);
       setToolOriginalId(existingTool?.id ?? workflowNode.data.toolId ?? null);
@@ -114,6 +118,9 @@ export function useToolDialog({
       serverUrl: "",
       description: "",
       allowedTools: "",
+      forwardAuthorizationHeader: false,
+      authorizationHeaderName: "",
+      stopOnToolInitError: false,
     });
     setToolFormError(null);
     setToolOriginalId(null);
@@ -123,12 +130,18 @@ export function useToolDialog({
   }, []);
 
   const handleFieldChange = useCallback(
-    (field: keyof ToolFormState) => (event: ChangeEvent<HTMLInputElement>) => {
-      const value = event.target.value;
-      setToolForm((previous) =>
-        previous ? { ...previous, [field]: value } : previous
-      );
-    },
+    (field: keyof ToolFormState) =>
+      (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const target = event.target;
+        const nextValue =
+          target instanceof HTMLInputElement && target.type === "checkbox"
+            ? target.checked
+            : target.value;
+
+        setToolForm((previous) =>
+          previous ? { ...previous, [field]: nextValue } : previous
+        );
+      },
     []
   );
 
@@ -182,6 +195,9 @@ export function useToolDialog({
           ? agent.tools.findIndex((tool) => tool.id === toolOriginalId)
           : agent.tools.findIndex((tool) => tool.id === trimmedId);
 
+        const trimmedAuthorizationHeaderName =
+          toolForm.authorizationHeaderName.trim();
+
         const updatedTool: AgentToolDefinition = {
           id: trimmedId,
           type: trimmedType,
@@ -192,6 +208,9 @@ export function useToolDialog({
             .split(",")
             .map((entry) => entry.trim())
             .filter((entry) => entry.length > 0),
+          forwardAuthorizationHeader: toolForm.forwardAuthorizationHeader,
+          authorizationHeaderName: trimmedAuthorizationHeaderName || undefined,
+          stopOnToolInitError: toolForm.stopOnToolInitError,
         };
 
         if (
@@ -199,6 +218,10 @@ export function useToolDialog({
           updatedTool.allowedTools.length === 0
         ) {
           delete updatedTool.allowedTools;
+        }
+
+        if (!updatedTool.forwardAuthorizationHeader) {
+          updatedTool.authorizationHeaderName = undefined;
         }
 
         if (existingIndex >= 0) {

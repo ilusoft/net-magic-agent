@@ -34,9 +34,11 @@ export interface WorkflowCanvasProps {
   onToggleSnap: () => void;
   onNodesChange: OnNodesChange;
   onEdgesChange?: OnEdgesChange;
+  onNodeClick?: NodeMouseHandler;
   onNodeDoubleClick: NodeMouseHandler;
   onEdgeClick: EdgeMouseHandler;
   onEdgeMouseEnter: EdgeMouseHandler;
+  onNodeDragStart?: NodeDragHandler;
   onNodeDragStop: NodeDragHandler;
   onPaneClick: () => void;
   onNodePositionRequest?: (
@@ -58,9 +60,11 @@ export function WorkflowCanvas({
   onToggleSnap,
   onNodesChange,
   onEdgesChange,
+  onNodeClick,
   onNodeDoubleClick,
   onEdgeClick,
   onEdgeMouseEnter,
+  onNodeDragStart,
   onNodeDragStop,
   onPaneClick,
   onNodePositionRequest,
@@ -80,6 +84,22 @@ export function WorkflowCanvas({
   const lastEdgesSignatureRef = useRef<string>("");
   const lastAppliedViewportSignatureRef = useRef<string | null>(null);
   const skipNextViewportPersistRef = useRef(false);
+  const isDraggingNodeRef = useRef(false);
+  const nodeDragSuppressClickRef = useRef(false);
+  const nodeDragSuppressFrameRef = useRef<number | null>(null);
+  const nodeDragStartPositionRef = useRef<
+    Map<string, { x: number; y: number }>
+  >(new Map());
+  const CLICK_MOVE_THRESHOLD = 2;
+
+  useEffect(() => {
+    return () => {
+      if (nodeDragSuppressFrameRef.current !== null) {
+        cancelAnimationFrame(nodeDragSuppressFrameRef.current);
+        nodeDragSuppressFrameRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (workflowRef.current === (activeWorkflowId ?? null)) {
@@ -283,6 +303,79 @@ export function WorkflowCanvas({
     [onViewportChange]
   );
 
+  const scheduleNodeClickRelease = useCallback(() => {
+    nodeDragSuppressClickRef.current = true;
+
+    if (nodeDragSuppressFrameRef.current !== null) {
+      cancelAnimationFrame(nodeDragSuppressFrameRef.current);
+    }
+
+    nodeDragSuppressFrameRef.current = window.requestAnimationFrame(() => {
+      nodeDragSuppressClickRef.current = false;
+      nodeDragSuppressFrameRef.current = null;
+    });
+  }, []);
+
+  const handleNodeDragStartInternal = useCallback<NodeDragHandler>(
+    (event, node, dragHandle) => {
+      isDraggingNodeRef.current = true;
+      const position = node.position ?? node.positionAbsolute ?? { x: 0, y: 0 };
+      nodeDragStartPositionRef.current.set(node.id, {
+        x: position.x,
+        y: position.y,
+      });
+
+      if (onNodeDragStart) {
+        onNodeDragStart(event, node, dragHandle);
+      }
+    },
+    [onNodeDragStart]
+  );
+
+  const handleNodeDragStopInternal = useCallback<NodeDragHandler>(
+    (event, node, dragHandle) => {
+      isDraggingNodeRef.current = false;
+      const startPosition = nodeDragStartPositionRef.current.get(node.id);
+      nodeDragStartPositionRef.current.delete(node.id);
+      const currentPosition = node.position ??
+        node.positionAbsolute ?? {
+          x: 0,
+          y: 0,
+        };
+      const deltaX = Math.abs(
+        currentPosition.x - (startPosition?.x ?? currentPosition.x)
+      );
+      const deltaY = Math.abs(
+        currentPosition.y - (startPosition?.y ?? currentPosition.y)
+      );
+      const movedSignificantly =
+        deltaX > CLICK_MOVE_THRESHOLD || deltaY > CLICK_MOVE_THRESHOLD;
+
+      if (!movedSignificantly) {
+        return;
+      }
+
+      scheduleNodeClickRelease();
+      onNodeDragStop(event, node, dragHandle);
+    },
+    [onNodeDragStop, scheduleNodeClickRelease]
+  );
+
+  const handleNodeClickInternal = useCallback<NodeMouseHandler>(
+    (event, node) => {
+      if (!onNodeClick) {
+        return;
+      }
+
+      if (nodeDragSuppressClickRef.current || isDraggingNodeRef.current) {
+        return;
+      }
+
+      onNodeClick(event, node);
+    },
+    [onNodeClick]
+  );
+
   return (
     <ReactFlow
       nodes={nodes}
@@ -296,10 +389,12 @@ export function WorkflowCanvas({
       snapGrid={[SNAP_GRID_SIZE, SNAP_GRID_SIZE]}
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
+      onNodeClick={handleNodeClickInternal}
       onNodeDoubleClick={onNodeDoubleClick}
       onEdgeClick={onEdgeClick}
       onEdgeMouseEnter={onEdgeMouseEnter}
-      onNodeDragStop={onNodeDragStop}
+      onNodeDragStart={handleNodeDragStartInternal}
+      onNodeDragStop={handleNodeDragStopInternal}
       onPaneClick={onPaneClick}
       onMoveEnd={handleViewportChangeInternal}
     >

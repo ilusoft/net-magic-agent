@@ -92,7 +92,7 @@
           "name": "Research Agent",
           "type": "chat",
           "parameters": {
-            "systemPrompt": "You are an inventory research assistant for ticket brokers. \n\nGoals:\n- Use the available tools to help users to get data to answer their question about productions, inventory and their pricing strategies. \n- Plan the execution of the tasks to minimize the calls to the tools and be as exact with the answer to the user as possible. \n\nOutput:\n- Return the data extracted from the tools in JSON format."
+            "systemPrompt": "You are an inventory research assistant for ticket brokers. \n\nGoals:\n- Use the available tools to help users to get data to answer their question about productions, inventory and their pricing strategies. \n- Plan the execution of the tasks to minimize the calls to the tools and be as exact with the answer to the user as possible. \n\nOutput:\n- If the tool returns data we will return a JSON formatted object with properties :  \n     * \u0022note\u0022 : \u0022has-data\u0022\n     * \u0022data\u0022: *** JSON result from the tool ***\n- If the tool return no data we will return a JSON formatted object with a single property: \n     * \u0022note\u0022 : \u0022no-data\u0022\n- If any error is detected on the tool execution we will return a JSON formatted object with these properties: \n    * \u0022note\u0022 : \u0022error\u0022\n    * \u0022details\u0022 : *** brief explanation of the error ***"
           },
           "provider": "azure-openai",
           "options": {},
@@ -112,23 +112,21 @@
               "condition": {
                 "type": "contains",
                 "parameters": {
-                  "value": "\u0022items\u0022:"
+                  "value": "\u0022has-data\u0022"
                 }
               },
               "endWorkflow": false,
-              "order": null
+              "order": 1
             },
             {
               "name": "no_results",
-              "nextStep": "No Results",
+              "nextStep": null,
               "condition": {
-                "type": "equals",
-                "parameters": {
-                  "value": "{}"
-                }
+                "type": "always",
+                "parameters": {}
               },
-              "endWorkflow": false,
-              "order": null
+              "endWorkflow": true,
+              "order": 2
             }
           ],
           "isStartStep": false
@@ -188,33 +186,10 @@
           "isStartStep": false
         },
         {
-          "name": "No Results",
-          "type": "echo",
-          "parameters": {
-            "message": "We cannot find data with the information provided. Try to formulate your question with other parameters to improve the search."
-          },
-          "provider": "azure-openai",
-          "options": {},
-          "conversation": null,
-          "tools": [],
-          "stopOnToolError": false,
-          "inputSource": "usePrevious",
-          "outcomes": [
-            {
-              "name": "finish",
-              "nextStep": null,
-              "condition": null,
-              "endWorkflow": true,
-              "order": null
-            }
-          ],
-          "isStartStep": false
-        },
-        {
           "name": "Create Agent",
           "type": "chat",
           "parameters": {
-            "systemPrompt": "You are a Pricing Group Creation agent for a ticket broker price management system. \n\nGoals and Constraints:\n- To create a pricing group you have a tool available that accepts variety of parameters to complete this task. \n- You should use the information on the context of this conversation and the user prompt to extract the minimal required information to create a pricing group. \n- A pricing group needs as mandatory parameters the productionId (a.k.a masterProductionId), a pricing group name, an anchor ticket group (first ticket that will be priced using the cheapest marketplace comparable ticket found as base price point) and a anchor ticket offset amount (amount that we will apply to the price of the marketplace comparable cheapest ticket to price our anchor ticket). That amount can have a direction (increase or decrease) and a type (applied as value or as a percentage to the price of the cheapest comparable ticket).\n-  Other parameters that we can optionally be provided to the pricing group are:\n    * Additional Pricing groups (they will be priced incrementally based on the rank provided - anchor ticket is rank 0.\n    * Pricing Group Offset Amount - Direction - Type : These 3 parameters define how the other tickets in the group are incrementally prices (price increase/decrease by a value or percentage and the amount of that offset)\n    * Floor and Ceiling Values : Determine the maximum and minimum price that we will allow a ticket group to be priced (the constraint might be apply only to the Anchor ticket or to all the tickets in the pricing group based on the parameters ApplyCeilingOnlyToAnchor and ApplyFloorOnlyToAnchor)\n    * Sharing Tickets : This refer to the capability to broadcast tickets to a marketplace or not. We can control the share of the anchor individually with a flag and of the other tickets in the pricing group with different methods (share certain amount or percentage of tickets in the group). We have as well a flag to allow the control of sharing to happen through our pricing tool or not.\n- A ticket group can only belong to a single pricing group and can not be added to another pricing group if already assigned to a different group.\n\nOutput:\n- Return the data provided by the pricing group creation tool in JSON format."
+            "systemPrompt": "You are a Pricing Group Creation agent for a ticket broker price management system. \n\nGoals and Constraints:\n- To create a pricing group you have a tool available that accepts variety of parameters to complete this task. \n- You should use the information on the context of this conversation and the user prompt to extract the minimal required information to create a pricing group. \n- A pricing group needs as mandatory parameters the productionId (a.k.a masterProductionId), a pricing group name, an anchor ticket group (first ticket that will be priced using the cheapest marketplace comparable ticket found as base price point) and a anchor ticket offset amount (amount that we will apply to the price of the marketplace comparable cheapest ticket to price our anchor ticket). That amount can have a direction (increase or decrease) and a type (applied as value or as a percentage to the price of the cheapest comparable ticket).\n-  Other parameters that we can optionally be provided to the pricing group are:\n    * Additional Pricing groups (they will be priced incrementally based on the rank provided - anchor ticket is rank 0.\n    * Pricing Group Offset Amount - Direction - Type : These 3 parameters define how the other tickets in the group are incrementally prices (price increase/decrease by a value or percentage and the amount of that offset)\n    * Floor and Ceiling Values : Determine the maximum and minimum price that we will allow a ticket group to be priced (the constraint might be apply only to the Anchor ticket or to all the tickets in the pricing group based on the parameters ApplyCeilingOnlyToAnchor and ApplyFloorOnlyToAnchor)\n    * Sharing Tickets : This refer to the capability to broadcast tickets to a marketplace or not. We can control the share of the anchor individually with a flag and of the other tickets in the pricing group with different methods (share certain amount or percentage of tickets in the group). We have as well a flag to allow the control of sharing to happen through our pricing tool or not.\n- A ticket group can only belong to a single pricing group and can not be added to another pricing group if already assigned to a different group."
           },
           "provider": "azure-openai",
           "options": {},
@@ -230,14 +205,9 @@
             {
               "name": "creation_complete",
               "nextStep": "Summarize Creation Task",
-              "condition": {
-                "type": "contains",
-                "parameters": {
-                  "value": "{}"
-                }
-              },
+              "condition": null,
               "endWorkflow": false,
-              "order": null
+              "order": 1
             }
           ],
           "isStartStep": false
@@ -246,7 +216,7 @@
           "name": "Edit Agent",
           "type": "chat",
           "parameters": {
-            "systemPrompt": "You are a Pricing Group Maintenance agent for a ticket broker price management system. \n\nGOALS AND CONSTRAINTS:\n- Your main tasks are to adjust the parameters of existing pricing groups or delete them if the user request it.\n- To complete these tasks you need some mandatory fields requested by the edit or delete pricing group tools. \n- You should use the information on the context of this conversation and the user prompt to extract the minimal required information to perform the task requested. \n- A pricing group is identified by a pricingGroupId.\n- Some of the important parameter that identify a pricing group are:\n    * Anchor ticket parameters (Amount, direction, type): Define how the first ticket of the group would be priced against the cheapest ticket in the marketplace (type: percentage or value, direction: increase or decrease)\n    * Group offset parameters (Amount, direction, type): Defines how each ticket in the group is priced based on the previous ranked ticket group (rank = 0). (type: percentage or value, direction: increase or decrease)\n    * Floor and Ceiling Values : Determine the maximum and minimum price that we will allow a ticket group to be priced (the constraint might be apply only to the Anchor ticket or to all the tickets in the pricing group based on the parameters ApplyCeilingOnlyToAnchor and ApplyFloorOnlyToAnchor)\n    * Sharing Tickets : This refer to the capability to broadcast tickets to a marketplace or not. We can control the share of the anchor individually with a flag and of the other tickets in the pricing group with different methods (share certain amount or percentage of tickets in the group). We have as well a flag to allow the control of sharing to happen through our pricing tool or not.\n- When editing the ticket groups of a pricing groups you have to provide ALL the tickets that the group contains ordered in the rank desired for pricing (rank = 0 is the anchor ticket).\n- A ticket group can only belong to a single pricing group and can not be added to another pricing group if already assigned to a different group. To perform a re-assignment of a pricing group we need to remve the ticket from the previous group first and the add it to its new pricing group.\n\nOutput:\n- Return the data provided by the pricing group edition tool in JSON format if editing or return a JSON with the message parameter \u0022group {pricingGroupId} deleted\u0022 if a deletion was completed."
+            "systemPrompt": "You are a Pricing Group Maintenance agent for a ticket broker price management system. \n\nGOALS AND CONSTRAINTS:\n- Your main tasks are to adjust the parameters of existing pricing groups or delete them if the user request it.\n- To complete these tasks you need some mandatory fields requested by the edit or delete pricing group tools. \n- You should use the information on the context of this conversation and the user prompt to extract the minimal required information to perform the task requested. \n- A pricing group is identified by a pricingGroupId.\n- Some of the important parameter that identify a pricing group are:\n    * Anchor ticket parameters (Amount, direction, type): Define how the first ticket of the group would be priced against the cheapest ticket in the marketplace (type: percentage or value, direction: increase or decrease)\n    * Group offset parameters (Amount, direction, type): Defines how each ticket in the group is priced based on the previous ranked ticket group (rank = 0). (type: percentage or value, direction: increase or decrease)\n    * Floor and Ceiling Values : Determine the maximum and minimum price that we will allow a ticket group to be priced (the constraint might be apply only to the Anchor ticket or to all the tickets in the pricing group based on the parameters ApplyCeilingOnlyToAnchor and ApplyFloorOnlyToAnchor)\n    * Sharing Tickets : This refer to the capability to broadcast tickets to a marketplace or not. We can control the share of the anchor individually with a flag and of the other tickets in the pricing group with different methods (share certain amount or percentage of tickets in the group). We have as well a flag to allow the control of sharing to happen through our pricing tool or not.\n- When editing the ticket groups of a pricing groups you have to provide ALL the tickets that the group contains ordered in the rank desired for pricing (rank = 0 is the anchor ticket).\n- A ticket group can only belong to a single pricing group and can not be added to another pricing group if already assigned to a different group. To perform a re-assignment of a pricing group we need to remove the ticket from the previous group first and the add it to its new pricing group."
           },
           "provider": "azure-openai",
           "options": {},
@@ -263,36 +233,11 @@
               "name": "edition_complete",
               "nextStep": "Summarize Edition Task",
               "condition": {
-                "type": "contains",
+                "type": "always",
                 "parameters": {}
               },
               "endWorkflow": false,
-              "order": null
-            }
-          ],
-          "isStartStep": false
-        },
-        {
-          "name": "Summarize Creation Task",
-          "type": "chat",
-          "parameters": {
-            "systemPrompt": "Summarize the conversation so far for the ticket broker. If provided with structured pricing group data, present the key items of the new group in natural language and potential action to maintain it."
-          },
-          "provider": "azure-openai",
-          "options": {},
-          "conversation": {
-            "enabled": true
-          },
-          "tools": [],
-          "stopOnToolError": false,
-          "inputSource": "usePrevious",
-          "outcomes": [
-            {
-              "name": "finish_creation",
-              "nextStep": null,
-              "condition": null,
-              "endWorkflow": true,
-              "order": null
+              "order": 1
             }
           ],
           "isStartStep": false
@@ -316,6 +261,31 @@
               "condition": null,
               "endWorkflow": true,
               "order": null
+            }
+          ],
+          "isStartStep": false
+        },
+        {
+          "name": "Summarize Creation Task",
+          "type": "chat",
+          "parameters": {
+            "systemPrompt": "You are a summarization assistant in a ticket broker management system.\n\nYou should use the context data and the results of the conversation up to this point to give the user (a ticket broker) a brief detail of the operations completed and potential next steps."
+          },
+          "provider": "azure-openai",
+          "options": {},
+          "conversation": {
+            "enabled": true
+          },
+          "tools": [],
+          "stopOnToolError": false,
+          "inputSource": "usePrevious",
+          "outcomes": [
+            {
+              "name": "finish_creation",
+              "nextStep": null,
+              "condition": null,
+              "endWorkflow": true,
+              "order": 1
             }
           ],
           "isStartStep": false
@@ -353,13 +323,13 @@
           "options": {},
           "actions": [],
           "allowedTools": [
-            "create_pricing_groups",
-            "sarech_pricing_groups",
+            "create_pricing_group",
+            "search_pricing_groups",
             "get_production_inventory"
           ],
-          "forwardAuthorizationHeader": false,
+          "forwardAuthorizationHeader": true,
           "authorizationHeaderName": "Authorization",
-          "stopOnToolInitError": false
+          "stopOnToolInitError": true
         },
         {
           "id": "edit-pricing-tool",
@@ -378,9 +348,9 @@
             "search_pricing_groups",
             "get_production_inventory"
           ],
-          "forwardAuthorizationHeader": false,
+          "forwardAuthorizationHeader": true,
           "authorizationHeaderName": "Authorization",
-          "stopOnToolInitError": false
+          "stopOnToolInitError": true
         }
       ],
       "ViewLayout": {
@@ -405,85 +375,57 @@
             "x": 212.5,
             "y": -23
           },
-          "search-inventory-agent-No Results": {
-            "x": 53.5,
-            "y": 345
-          },
-          "No Results": {
-            "x": 53.5,
-            "y": 345
-          },
-          "search-inventory-agent-termination-finish": {
-            "x": 103.04238638242464,
-            "y": 453.97174241171695
-          },
           "search-inventory-agent-Research Agent": {
             "x": 247,
-            "y": 121
+            "y": 137
           },
           "Research Agent": {
             "x": 247,
-            "y": 121
+            "y": 137
           },
           "search-inventory-agent-Create Agent": {
-            "x": 575.5,
+            "x": 607.5,
             "y": 137
           },
           "Create Agent": {
-            "x": 575.5,
+            "x": 607.5,
             "y": 137
           },
           "search-inventory-agent-Summarize Research Results": {
-            "x": 236.5,
-            "y": 345
+            "x": 204.5,
+            "y": 329
           },
           "Summarize Research Results": {
-            "x": 236.5,
-            "y": 345
+            "x": 204.5,
+            "y": 329
           },
           "search-inventory-agent-Edit Agent": {
-            "x": 872.5,
-            "y": 121
+            "x": 920.5,
+            "y": 137
           },
           "Edit Agent": {
-            "x": 872.5,
-            "y": 121
+            "x": 920.5,
+            "y": 137
           },
           "search-inventory-agent-tool-create-pricing-group-tools": {
-            "x": 725,
+            "x": 773,
             "y": 243
           },
           "search-inventory-agent-tool-edit-pricing-tool": {
-            "x": 1013,
+            "x": 1077,
             "y": 243
           },
-          "search-inventory-agent-Summarize Creation Task": {
-            "x": 536,
-            "y": 345
-          },
-          "Summarize Creation Task": {
-            "x": 536,
-            "y": 345
-          },
           "search-inventory-agent-termination-finish_research": {
-            "x": 343,
-            "y": 455
-          },
-          "search-inventory-agent-termination-finish_creation": {
-            "x": 631,
-            "y": 455
+            "x": 311,
+            "y": 471
           },
           "search-inventory-agent-Summarize Edition Task": {
-            "x": 829,
-            "y": 345
-          },
-          "Summarize Edition Task": {
-            "x": 829,
-            "y": 345
+            "x": 877,
+            "y": 329
           },
           "search-inventory-agent-termination-finish_edition": {
-            "x": 919,
-            "y": 455
+            "x": 967,
+            "y": 471
           },
           "search-inventory-agent-Escalate Risk": {
             "x": -130.5,
@@ -492,6 +434,18 @@
           "Escalate Risk": {
             "x": -130.5,
             "y": 121
+          },
+          "search-inventory-agent-termination-no_results": {
+            "x": 103,
+            "y": 295
+          },
+          "search-inventory-agent-Summarize Creation Task": {
+            "x": 568,
+            "y": 329
+          },
+          "search-inventory-agent-termination-finish_creation": {
+            "x": 663,
+            "y": 471
           }
         },
         "edges": {
@@ -511,11 +465,11 @@
             "controlPoints": [
               {
                 "x": 176,
-                "y": 80
+                "y": 96
               },
               {
                 "x": 32,
-                "y": 80
+                "y": 96
               }
             ]
           },
@@ -538,7 +492,7 @@
           "search-inventory-agent-Research Agent-has_results": {
             "controlPoints": [
               {
-                "x": 368,
+                "x": 336,
                 "y": 208
               }
             ]
@@ -546,7 +500,7 @@
           "search-inventory-agent-Security and Classification-editor_handoff": {
             "controlPoints": [
               {
-                "x": 944,
+                "x": 992,
                 "y": 32
               }
             ]
@@ -554,7 +508,7 @@
           "search-inventory-agent-Security and Classification-creator_handoff": {
             "controlPoints": [
               {
-                "x": 656,
+                "x": 688,
                 "y": 48
               }
             ]
@@ -562,7 +516,7 @@
           "search-inventory-agent-Create Agent-tool-create-pricing-group-tools": {
             "controlPoints": [
               {
-                "x": 800,
+                "x": 848,
                 "y": 176
               }
             ]
@@ -570,7 +524,7 @@
           "search-inventory-agent-Edit Agent-tool-edit-pricing-tool": {
             "controlPoints": [
               {
-                "x": 1088,
+                "x": 1152,
                 "y": 176
               }
             ]
@@ -578,7 +532,7 @@
           "search-inventory-agent-Create Agent-creation_complete": {
             "controlPoints": [
               {
-                "x": 656,
+                "x": 688,
                 "y": 208
               }
             ]
@@ -586,7 +540,7 @@
           "search-inventory-agent-Edit Agent-edition_complete": {
             "controlPoints": [
               {
-                "x": 944,
+                "x": 992,
                 "y": 208
               }
             ]
@@ -598,14 +552,30 @@
                 "y": -96
               }
             ]
+          },
+          "search-inventory-agent-Escalate Risk-risk_notified": {
+            "controlPoints": [
+              {
+                "x": -48,
+                "y": 208
+              }
+            ]
+          },
+          "search-inventory-agent-Security and Classification-research_handoff": {
+            "controlPoints": [
+              {
+                "x": 336,
+                "y": 48
+              }
+            ]
           }
         },
         "viewport": {
           "position": {
-            "x": 237.60533693276568,
-            "y": 275.6947365165573
+            "x": 188.90473688093513,
+            "y": 355.06344370137504
           },
-          "zoom": 1.2500623025852093
+          "zoom": 1.2201296079503485
         }
       }
     },

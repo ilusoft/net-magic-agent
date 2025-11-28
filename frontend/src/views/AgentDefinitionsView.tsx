@@ -231,6 +231,25 @@ export function AgentDefinitionsView({
     openOutcomeDialogForCreation,
   });
 
+  const handleNodeClick = useCallback<NodeMouseHandler>(
+    (_event, node) => {
+      const workflowNode = node as WorkflowNode;
+
+      if (
+        workflowNode.data.kind === "step" ||
+        workflowNode.data.kind === "placeholder"
+      ) {
+        openStepDialogForNode(workflowNode);
+        return;
+      }
+
+      if (workflowNode.data.kind === "tool") {
+        openToolDialogForNode(workflowNode);
+      }
+    },
+    [openStepDialogForNode, openToolDialogForNode]
+  );
+
   const handleNodeDoubleClick = useCallback<NodeMouseHandler>(
     (_event, node) => {
       const workflowNode = node as WorkflowNode;
@@ -358,6 +377,7 @@ export function AgentDefinitionsView({
                   onToggleSnap={handleSnapToggle}
                   onNodesChange={handleNodesChange}
                   onEdgesChange={onEdgesChange}
+                  onNodeClick={handleNodeClick}
                   onNodeDoubleClick={handleNodeDoubleClick}
                   onEdgeClick={handleEdgeClick}
                   onEdgeMouseEnter={handleEdgeMouseEnter}
