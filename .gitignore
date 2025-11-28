@@ -1,5 +1,8 @@
-backend/src/MagicAgent.Api/bin/
-backend/src/MagicAgent.Api/obj/
+# Build output
+**/bin/
+**/obj/
+
+# Environment files
 frontend/.env
 frontend/.env.local
 frontend/.env.*
