@@ -1,3 +1,4 @@
+using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 
 namespace MagicAgent.Api.Application.AgentRunner;
@@ -5,6 +6,22 @@ namespace MagicAgent.Api.Application.AgentRunner;
 public sealed class AgentDefinitionsOptions
 {
     public string FilePath { get; init; } = "Configurations/agents.json";
+}
+
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum WorkflowVariableDataType
+{
+    [EnumMember(Value = "string")]
+    String,
+
+    [EnumMember(Value = "number")]
+    Number,
+
+    [EnumMember(Value = "dateTime")]
+    DateTime,
+
+    [EnumMember(Value = "json")]
+    Json,
 }
 
 public sealed class AgentDefinitionsDocument
@@ -137,6 +154,9 @@ public sealed class AgentStepDefinition
 
     [JsonPropertyName("parameters")]
     public IDictionary<string, string> Parameters { get; init; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+    [JsonPropertyName("variableTypes")]
+    public IDictionary<string, WorkflowVariableDataType> VariableTypes { get; init; } = new Dictionary<string, WorkflowVariableDataType>(StringComparer.OrdinalIgnoreCase);
 
     [JsonPropertyName("provider")]
     public string Provider { get; init; } = "azure-openai";

@@ -5,12 +5,169 @@ import type {
   AgentMessage,
   AgentRunResult,
   AgentStepExecutionResult,
+  WorkflowVariableDataType,
 } from "../types/agents";
 
 interface WorkflowExecutionPanelProps {
   runs: AgentRunResult[];
   debugError: string | null;
   messages?: AgentMessage[];
+}
+
+function renderParameterDebug(
+  parameterDebug: AgentStepExecutionResult["parameterDebug"]
+) {
+  if (!parameterDebug || Object.keys(parameterDebug).length === 0) {
+    return null;
+  }
+
+  const entries = Object.entries(parameterDebug).sort(([a], [b]) =>
+    a.localeCompare(b)
+  );
+
+  return (
+    <div className="mt-3 space-y-2">
+      <div className="flex items-center justify-between text-xs">
+        <span className="font-semibold uppercase text-foreground/60">
+          Parameter Debug
+        </span>
+        <span className="text-foreground/50">
+          Original templates vs. resolved values
+        </span>
+      </div>
+
+      {entries.map(([key, details]) => (
+        <div
+          key={key}
+          className="space-y-2 rounded border border-border/40 bg-muted/10 p-2 text-sm text-foreground/80"
+        >
+          <span className="font-medium text-foreground">{key}</span>
+          <dl className="grid gap-3 text-xs sm:grid-cols-2">
+            <div>
+              <dt className="font-semibold text-foreground/70">
+                Original value
+              </dt>
+              <dd className="whitespace-pre-wrap text-foreground/90">
+                {formatDebugValue(details.originalValue)}
+              </dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-foreground/70">
+                Resolved value
+              </dt>
+              <dd className="whitespace-pre-wrap text-foreground/90">
+                {formatDebugValue(details.resolvedValue)}
+              </dd>
+            </div>
+          </dl>
+          <div className="text-xs">
+            <dt className="font-semibold text-foreground/70">Placeholders</dt>
+            <dd className="mt-1 flex flex-wrap gap-1">
+              {renderPlaceholderBadges(details.placeholders)}
+            </dd>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function renderPlaceholderBadges(placeholders?: string[]) {
+  if (!placeholders || placeholders.length === 0) {
+    return <span className="text-foreground/50">None referenced</span>;
+  }
+
+  return placeholders.map((placeholder) => (
+    <span
+      key={placeholder}
+      className="rounded bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary"
+    >
+      {`{{${placeholder}}}`}
+    </span>
+  ));
+}
+
+function renderVariableDebug(
+  variableDebug: AgentStepExecutionResult["variableDebug"]
+) {
+  if (!variableDebug || Object.keys(variableDebug).length === 0) {
+    return null;
+  }
+
+  const entries = Object.entries(variableDebug).sort(([a], [b]) =>
+    a.localeCompare(b)
+  );
+
+  return (
+    <div className="mt-3 space-y-2">
+      <div className="flex items-center justify-between text-xs">
+        <span className="font-semibold uppercase text-foreground/60">
+          Variable Assignments
+        </span>
+        <span className="text-foreground/50">
+          Raw inputs vs. stored values per data type
+        </span>
+      </div>
+
+      {entries.map(([key, details]) => (
+        <div
+          key={key}
+          className="space-y-2 rounded border border-border/40 bg-muted/10 p-2 text-sm text-foreground/80"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="font-medium text-foreground">{key}</span>
+            <span className="rounded bg-primary/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-primary">
+              {formatVariableTypeLabel(details.type)}
+            </span>
+          </div>
+          <dl className="grid gap-3 text-xs sm:grid-cols-2">
+            <div>
+              <dt className="font-semibold text-foreground/70">Raw value</dt>
+              <dd className="whitespace-pre-wrap text-foreground/90">
+                {formatDebugValue(details.rawValue)}
+              </dd>
+            </div>
+            <div>
+              <dt className="font-semibold text-foreground/70">Stored value</dt>
+              <dd className="whitespace-pre-wrap text-foreground/90">
+                {formatDebugValue(details.convertedValue)}
+              </dd>
+            </div>
+          </dl>
+          {details.error ? (
+            <p className="text-xs text-destructive">{details.error}</p>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const VARIABLE_TYPE_LABELS: Record<WorkflowVariableDataType, string> = {
+  string: "String",
+  number: "Number",
+  dateTime: "Date & Time",
+  json: "JSON",
+};
+
+function formatVariableTypeLabel(type?: WorkflowVariableDataType) {
+  if (!type) {
+    return VARIABLE_TYPE_LABELS.string;
+  }
+
+  return VARIABLE_TYPE_LABELS[type] ?? VARIABLE_TYPE_LABELS.string;
+}
+
+function formatDebugValue(value: string | undefined) {
+  if (typeof value === "undefined" || value === null) {
+    return "—";
+  }
+
+  if (value.length === 0) {
+    return "(empty string)";
+  }
+
+  return value;
 }
 
 function renderResolvedParameters(
@@ -403,9 +560,13 @@ export function WorkflowExecutionPanel({
 
                               {renderThreadContext(step.threadContext)}
 
+                              {renderParameterDebug(step.parameterDebug)}
+
                               {renderResolvedParameters(
                                 step.resolvedParameters
                               )}
+
+                              {renderVariableDebug(step.variableDebug)}
 
                               {renderToolInvocations(step)}
                             </li>

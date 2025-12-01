@@ -8,12 +8,59 @@ import {
   StepNameField,
   useExpandedValueEditor,
 } from "./StepDialogShared";
-import type { KeyValueEntry } from "../types";
+import type { KeyValueEntry, WorkflowVariableDataType } from "../types";
 
 interface VariablePresetOption {
   value: string;
   label: string;
   description: string;
+}
+
+function valueContainsRuntime(value: string | undefined) {
+  if (!value) {
+    return false;
+  }
+
+  return value.includes("{{") || value.startsWith("$preset:");
+}
+
+function validateValueForType(
+  value: string | undefined,
+  type: WorkflowVariableDataType,
+  runtimeExpression: boolean
+) {
+  if (!value || type === "string" || runtimeExpression) {
+    return null;
+  }
+
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  if (type === "number") {
+    return Number.isFinite(Number(trimmed))
+      ? null
+      : "Enter a valid number (e.g., 3.14).";
+  }
+
+  if (type === "dateTime") {
+    return Number.isNaN(Date.parse(trimmed))
+      ? "Use an ISO 8601 timestamp (e.g., 2024-05-01T10:00:00Z)."
+      : null;
+  }
+
+  if (type === "json") {
+    try {
+      JSON.parse(trimmed);
+      return null;
+    } catch {
+      return "Provide valid JSON (object or array).";
+    }
+  }
+
+  return null;
 }
 
 const VARIABLE_PRESET_PREFIX = "$preset:" as const;
@@ -58,6 +105,15 @@ function getVariablePresetDetails(value: string) {
   return VARIABLE_PRESET_OPTIONS.find((option) => option.value === value);
 }
 
+const VARIABLE_TYPE_HELP_TEXT: Record<WorkflowVariableDataType, string> = {
+  string:
+    "Stores the exact text (including placeholders like {{input}}) without modifications.",
+  number: "Parses a floating-point number (e.g., 42 or 3.14).",
+  dateTime:
+    "Parses ISO 8601 timestamps (e.g., 2024-05-01T10:00:00Z or local presets).",
+  json: "Validates JSON objects/arrays and stores a normalized string.",
+};
+
 export function VariableStepDialog(props: StepDialogBaseProps) {
   const expandedEditor = useExpandedValueEditor(props.onParameterChange);
 
@@ -94,6 +150,7 @@ export function VariableStepDialog(props: StepDialogBaseProps) {
           onParameterChange={props.onParameterChange}
           onPresetChange={handlePresetChange}
           onExpandValue={expandedEditor.open}
+          onDataTypeChange={props.onParameterDataTypeChange}
         />
       </StepDialogContainer>
       {expandedEditor.dialog}
@@ -109,6 +166,7 @@ interface VariableParameterSectionProps {
   onParameterChange: StepDialogBaseProps["onParameterChange"];
   onPresetChange: (entryId: string, selection: string) => void;
   onExpandValue: (entryId: string, value: string | undefined) => void;
+  onDataTypeChange?: (entryId: string, type: WorkflowVariableDataType) => void;
 }
 
 function VariableParameterSection({
@@ -119,6 +177,7 @@ function VariableParameterSection({
   onParameterChange,
   onPresetChange,
   onExpandValue,
+  onDataTypeChange,
 }: VariableParameterSectionProps) {
   return (
     <div className="space-y-3">
@@ -149,6 +208,7 @@ function VariableParameterSection({
               onPresetChange={onPresetChange}
               onExpandValue={onExpandValue}
               onRemove={onRemove}
+              onDataTypeChange={onDataTypeChange}
             />
           ))}
         </div>
@@ -167,6 +227,7 @@ interface VariableParameterRowProps {
   onPresetChange: (entryId: string, selection: string) => void;
   onExpandValue: (entryId: string, value: string | undefined) => void;
   onRemove: (entryId: string) => void;
+  onDataTypeChange?: (entryId: string, type: WorkflowVariableDataType) => void;
 }
 
 function VariableParameterRow({
@@ -175,10 +236,16 @@ function VariableParameterRow({
   onPresetChange,
   onExpandValue,
   onRemove,
+  onDataTypeChange,
 }: VariableParameterRowProps) {
   const selection = getVariablePresetSelection(entry.value);
   const isCustomValue = selection === VARIABLE_PRESET_CUSTOM_OPTION;
   const presetDetails = getVariablePresetDetails(selection);
+  const selectedType: WorkflowVariableDataType = entry.dataType ?? "string";
+  const runtimeExpression = isCustomValue && valueContainsRuntime(entry.value);
+  const validationError = isCustomValue
+    ? validateValueForType(entry.value, selectedType, runtimeExpression)
+    : null;
 
   return (
     <div className="space-y-3 rounded-md border border-border/70 bg-muted/10 p-3">
@@ -198,6 +265,32 @@ function VariableParameterRow({
           Remove
         </button>
       </div>
+
+      {onDataTypeChange ? (
+        <div className="flex flex-col gap-2">
+          <label className="text-xs font-semibold uppercase text-foreground/60">
+            Data type
+          </label>
+          <select
+            value={selectedType}
+            onChange={(event) =>
+              onDataTypeChange(
+                entry.id,
+                event.target.value as WorkflowVariableDataType
+              )
+            }
+            className="rounded-md border border-border bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="string">String</option>
+            <option value="number">Number</option>
+            <option value="dateTime">Date & Time</option>
+            <option value="json">JSON</option>
+          </select>
+          <p className="text-xs text-foreground/60">
+            {VARIABLE_TYPE_HELP_TEXT[selectedType]}
+          </p>
+        </div>
+      ) : null}
 
       <div className="flex flex-col gap-2">
         <label className="text-xs font-semibold uppercase text-foreground/60">
@@ -238,6 +331,19 @@ function VariableParameterRow({
               <Maximize2 className="h-3.5 w-3.5" />
             </button>
           </div>
+          {runtimeExpression ? (
+            <p className="text-xs text-foreground/60">
+              Contains placeholders or presets — value will be validated when
+              the workflow runs.
+            </p>
+          ) : validationError ? (
+            <p className="text-xs text-destructive">{validationError}</p>
+          ) : (
+            <p className="text-xs text-foreground/60">
+              Need tokens like {"{{var.name}}"}? Pick the type the resolved
+              value will become.
+            </p>
+          )}
         </div>
       ) : (
         <div className="rounded-md border border-dashed border-border/70 bg-background/60 px-3 py-2 text-sm text-foreground/70">

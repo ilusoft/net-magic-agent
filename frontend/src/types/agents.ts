@@ -1,3 +1,9 @@
+export type WorkflowVariableDataType =
+  | "string"
+  | "number"
+  | "dateTime"
+  | "json";
+
 export interface AgentDefinitionsDocument {
   agents: AgentDefinition[];
 }
@@ -54,6 +60,7 @@ export interface AgentStepDefinition {
   name: string;
   type: string;
   parameters: Record<string, string>;
+  variableTypes?: Record<string, WorkflowVariableDataType>;
   conversation?: AgentStepConversationOptions;
   outcomes?: AgentStepOutcomeDefinition[];
   tools?: string[];
@@ -121,12 +128,27 @@ export interface AgentStepExecutionResult {
   output: string;
   input?: string | null;
   resolvedParameters?: Record<string, string>;
+  parameterDebug?: Record<string, WorkflowParameterDebugInfo>;
+  variableDebug?: Record<string, WorkflowVariableDebugInfo>;
   threadContext?: unknown;
   outcome?: string | null;
   nextStep?: string | null;
   endWorkflow?: boolean;
   toolInvocations?: AgentToolCall[];
   toolErrorDetected?: boolean;
+}
+
+export interface WorkflowVariableDebugInfo {
+  rawValue: string;
+  convertedValue: string;
+  type: WorkflowVariableDataType;
+  error?: string | null;
+}
+
+export interface WorkflowParameterDebugInfo {
+  originalValue: string;
+  resolvedValue: string;
+  placeholders: string[];
 }
 
 export interface AgentRunResult {

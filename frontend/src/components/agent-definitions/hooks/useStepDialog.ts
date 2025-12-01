@@ -13,11 +13,13 @@ import {
   type StepType,
   type WorkflowNode,
   type KeyValueEntry,
+  type WorkflowVariableDataType,
 } from "../types";
 import {
   createKeyValueEntry,
   entriesFromRecord,
   recordFromEntries,
+  variableTypesFromEntries,
 } from "../util";
 
 type ApplyDocumentUpdate = (
@@ -169,6 +171,10 @@ interface UseStepDialogResult {
       entryId: string,
       field: "key" | "value"
     ) => (event: ChangeEvent<HTMLInputElement>) => void;
+    onParameterDataTypeChange?: (
+      entryId: string,
+      dataType: WorkflowVariableDataType
+    ) => void;
     availableTools: { id: string; label: string }[];
     onToolToggle: (
       toolId: string
@@ -271,7 +277,10 @@ export function useStepDialog({
         ? agent.steps.find((step) => step.name === targetStepName)
         : undefined;
 
-      const parameterEntries = entriesFromRecord(existingStep?.parameters);
+      const parameterEntries = entriesFromRecord(
+        existingStep?.parameters,
+        existingStep?.variableTypes
+      );
       const stepType = coerceStepType(existingStep?.type);
       const ensuredEntries = ensureParametersForStepType(
         stepType,
@@ -287,6 +296,7 @@ export function useStepDialog({
         conversationEnabled: existingStep?.conversation?.enabled ?? false,
         parameters: ensuredEntries,
         tools: selectedTools,
+        variableTypes: existingStep?.variableTypes,
       });
       setStepFormError(null);
       setStepOriginalName(existingStep?.name ?? targetStepName ?? null);
@@ -342,10 +352,17 @@ export function useStepDialog({
               nextType,
               previous.parameters ?? []
             );
+            const normalizedParameters = nextParameters.map((entry) => ({
+              ...entry,
+              dataType:
+                nextType === "setVariables"
+                  ? entry.dataType ?? "string"
+                  : undefined,
+            }));
             return {
               ...previous,
               type: nextType,
-              parameters: nextParameters,
+              parameters: normalizedParameters,
               conversationEnabled:
                 nextType === "setVariables"
                   ? false
@@ -393,7 +410,14 @@ export function useStepDialog({
       previous
         ? {
             ...previous,
-            parameters: [...previous.parameters, createKeyValueEntry()],
+            parameters: [
+              ...previous.parameters,
+              createKeyValueEntry(
+                "",
+                "",
+                previous.type === "setVariables" ? "string" : undefined
+              ),
+            ],
           }
         : previous
     );
@@ -415,6 +439,22 @@ export function useStepDialog({
       };
     });
   }, []);
+
+  const handleParameterDataTypeChange = useCallback(
+    (entryId: string, dataType: WorkflowVariableDataType) => {
+      setStepForm((previous) =>
+        previous
+          ? {
+              ...previous,
+              parameters: previous.parameters.map((entry) =>
+                entry.id === entryId ? { ...entry, dataType } : entry
+              ),
+            }
+          : previous
+      );
+    },
+    []
+  );
 
   const handleToolToggle = useCallback(
     (toolId: string) => (event: ChangeEvent<HTMLInputElement>) => {
@@ -460,6 +500,7 @@ export function useStepDialog({
       }
 
       const parameters = recordFromEntries(stepForm.parameters);
+      const variableTypes = variableTypesFromEntries(stepForm.parameters);
       const conversation = stepForm.conversationEnabled
         ? { enabled: true }
         : undefined;
@@ -507,6 +548,12 @@ export function useStepDialog({
 
         if (!conversation) {
           delete (updatedStep as Partial<AgentStepDefinition>).conversation;
+        }
+
+        if (Object.keys(variableTypes).length > 0) {
+          updatedStep.variableTypes = variableTypes;
+        } else {
+          delete (updatedStep as Partial<AgentStepDefinition>).variableTypes;
         }
 
         if (uniqueTools.length > 0) {
@@ -623,6 +670,7 @@ export function useStepDialog({
       onAddParameter: handleAddParameter,
       onRemoveParameter: handleRemoveParameter,
       onParameterChange: handleParameterChange,
+      onParameterDataTypeChange: handleParameterDataTypeChange,
       availableTools,
       onToolToggle: handleToolToggle,
       onDelete: mode === "edit" ? handleDelete : undefined,

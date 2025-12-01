@@ -77,6 +77,7 @@ public sealed class DefaultAgentRunner(
         var pendingInput = request.Input;
         var lastStepOutput = pendingInput;
         var workflowVariables = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var workflowVariableStates = new Dictionary<string, WorkflowVariableState>(StringComparer.OrdinalIgnoreCase);
 
         var toolBuilder = new AgentToolBuilder(_logger);
         await using var toolContext = await toolBuilder.BuildAsync(definition, request.Headers, cancellationToken).ConfigureAwait(false);
@@ -185,12 +186,13 @@ public sealed class DefaultAgentRunner(
 
             var stepStopwatch = Stopwatch.StartNew();
 
-            var resolvedParameters = WorkflowPlaceholderResolver.ResolveDictionary(
+            var parameterResolution = WorkflowPlaceholderResolver.ResolveDictionaryWithDebug(
                 stepDefinition.Parameters,
                 workflowVariables,
                 parameters,
                 stepInput,
                 lastStepOutput);
+            var resolvedParameters = parameterResolution.ResolvedValues;
 
             // resolvedOptions are forwarded to every step—even if the current implementation does not
             // consume them—so future step types (e.g. tool invocations, scripted actions, advanced
@@ -214,7 +216,9 @@ public sealed class DefaultAgentRunner(
               sharedThreadState,
               resolvedParameters,
               resolvedOptions,
+              parameterResolution.Debug,
               workflowVariables,
+              workflowVariableStates,
               cancellationToken).ConfigureAwait(false);
 
             stepStopwatch.Stop();
@@ -286,7 +290,9 @@ public sealed class DefaultAgentRunner(
       JsonElement? threadState,
       IReadOnlyDictionary<string, string> resolvedParameters,
       IReadOnlyDictionary<string, string> resolvedOptions,
+      IReadOnlyDictionary<string, WorkflowParameterDebugInfo> parameterDebug,
       IDictionary<string, string> workflowVariables,
+      IDictionary<string, WorkflowVariableState> workflowVariableStates,
       CancellationToken cancellationToken)
     {
         if (step.Type.Equals("chat", StringComparison.OrdinalIgnoreCase))
@@ -301,6 +307,7 @@ public sealed class DefaultAgentRunner(
               threadState,
               resolvedParameters,
               resolvedOptions,
+              parameterDebug,
               cancellationToken);
         }
 
@@ -311,6 +318,7 @@ public sealed class DefaultAgentRunner(
                 new AgentStepExecutionResult(step.Name, step.Type, message)
                 {
                     ResolvedParameters = resolvedParameters,
+                    ParameterDebug = parameterDebug,
                 },
                 conversationId,
                 threadState,
@@ -320,18 +328,34 @@ public sealed class DefaultAgentRunner(
         if (step.Type.Equals("setVariables", StringComparison.OrdinalIgnoreCase))
         {
             var assigned = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var assignedDebug = new Dictionary<string, WorkflowVariableDebugInfo>(StringComparer.OrdinalIgnoreCase);
+            var declaredTypes = step.VariableTypes ?? new Dictionary<string, WorkflowVariableDataType>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var kvp in resolvedParameters)
             {
                 var resolvedValue = ResolveVariableAssignmentValue(kvp.Value, conversationId);
-                workflowVariables[kvp.Key] = resolvedValue;
-                assigned[kvp.Key] = resolvedValue;
+                var targetType = declaredTypes.TryGetValue(kvp.Key, out var declaredType)
+                    ? declaredType
+                    : WorkflowVariableDataType.String;
+
+                var state = ConvertWorkflowVariableValue(resolvedValue, targetType);
+
+                workflowVariables[kvp.Key] = state.ConvertedValue;
+                workflowVariableStates[kvp.Key] = state;
+                assigned[kvp.Key] = state.ConvertedValue;
+                assignedDebug[kvp.Key] = new WorkflowVariableDebugInfo(
+                    state.RawValue,
+                    state.ConvertedValue,
+                    state.Type,
+                    state.Error);
             }
 
             return (
                 new AgentStepExecutionResult(step.Name, step.Type, input ?? string.Empty)
                 {
                     ResolvedParameters = assigned,
+                    VariableDebug = assignedDebug,
+                    ParameterDebug = parameterDebug,
                 },
                 conversationId,
                 threadState,
@@ -343,6 +367,7 @@ public sealed class DefaultAgentRunner(
             new AgentStepExecutionResult(step.Name, step.Type, fallbackOutput)
             {
                 ResolvedParameters = resolvedParameters,
+                ParameterDebug = parameterDebug,
             },
             conversationId,
             threadState,
@@ -400,6 +425,69 @@ public sealed class DefaultAgentRunner(
         return value;
     }
 
+    private static WorkflowVariableState ConvertWorkflowVariableValue(string rawValue, WorkflowVariableDataType targetType)
+    {
+        if (rawValue is null)
+        {
+            return new WorkflowVariableState(string.Empty, string.Empty, WorkflowVariableDataType.String, null);
+        }
+
+        string converted = rawValue;
+        string? error = null;
+
+        switch (targetType)
+        {
+            case WorkflowVariableDataType.Number:
+                if (double.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out var numericValue))
+                {
+                    converted = numericValue.ToString(CultureInfo.InvariantCulture);
+                }
+                else
+                {
+                    error = "Unable to parse number. Stored original string.";
+                    targetType = WorkflowVariableDataType.String;
+                }
+                break;
+
+            case WorkflowVariableDataType.DateTime:
+                if (DateTimeOffset.TryParse(rawValue, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateTimeValue))
+                {
+                    converted = dateTimeValue.ToString("O", CultureInfo.InvariantCulture);
+                }
+                else
+                {
+                    error = "Unable to parse date/time. Stored original string.";
+                    targetType = WorkflowVariableDataType.String;
+                }
+                break;
+
+            case WorkflowVariableDataType.Json:
+                try
+                {
+                    using var document = JsonDocument.Parse(rawValue);
+                    converted = JsonSerializer.Serialize(document.RootElement, PassThroughSerializerOptions);
+                }
+                catch (JsonException)
+                {
+                    error = "Unable to parse JSON. Stored original string.";
+                    targetType = WorkflowVariableDataType.String;
+                }
+                break;
+
+            case WorkflowVariableDataType.String:
+            default:
+                break;
+        }
+
+        return new WorkflowVariableState(rawValue, converted, targetType, error);
+    }
+
+    private sealed record WorkflowVariableState(
+        string RawValue,
+        string ConvertedValue,
+        WorkflowVariableDataType Type,
+        string? Error);
+
     private async Task<(AgentStepExecutionResult Result, string? ConversationId, JsonElement? ThreadState, JsonElement? StepThreadContext)> ExecuteChatStepAsync(
       AgentDefinition definition,
       AgentStepDefinition step,
@@ -410,17 +498,17 @@ public sealed class DefaultAgentRunner(
       JsonElement? threadState,
       IReadOnlyDictionary<string, string> resolvedParameters,
       IReadOnlyDictionary<string, string> resolvedOptions,
+      IReadOnlyDictionary<string, WorkflowParameterDebugInfo> parameterDebug,
       CancellationToken cancellationToken)
     {
         var instructions = resolvedParameters.TryGetValue("systemPrompt", out var systemPrompt) ?
           systemPrompt :
           definition.Description ?? "You are a helpful assistant.";
 
-        var userMessage = input;
-        if (string.IsNullOrWhiteSpace(userMessage) && resolvedParameters.TryGetValue("message", out var fallbackMessage))
-        {
-            userMessage = fallbackMessage;
-        }
+        var userMessage = resolvedParameters.TryGetValue("message", out var configuredMessage)
+            && !string.IsNullOrWhiteSpace(configuredMessage)
+            ? configuredMessage
+            : input;
 
         if (string.IsNullOrWhiteSpace(userMessage))
         {
@@ -492,6 +580,7 @@ public sealed class DefaultAgentRunner(
                 ToolInvocations = toolAnalysis.ToolCalls,
                 ToolErrorDetected = toolAnalysis.HasErrors,
                 ResolvedParameters = resolvedParameters,
+                ParameterDebug = parameterDebug,
             };
 
             serializedThread ??= agentThread.Serialize();
@@ -515,6 +604,7 @@ public sealed class DefaultAgentRunner(
                 new AgentStepExecutionResult(step.Name, step.Type, fallback)
                 {
                     ResolvedParameters = resolvedParameters,
+                    ParameterDebug = parameterDebug,
                 },
                 conversationContext.ConversationId ?? conversationId,
                 threadState,

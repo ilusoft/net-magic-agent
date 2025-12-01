@@ -3,9 +3,13 @@ import type {
   AgentNodeHandlePlacement,
   AgentViewLayoutNode,
   WorkflowHandlePosition,
+  WorkflowVariableDataType,
 } from "../../types/agents";
 
-export type { WorkflowHandlePosition } from "../../types/agents";
+export type {
+  WorkflowHandlePosition,
+  WorkflowVariableDataType,
+} from "../../types/agents";
 
 export type NodeKind =
   | "start"
@@ -67,6 +71,7 @@ export interface KeyValueEntry {
   id: string;
   key: string;
   value: string;
+  dataType?: WorkflowVariableDataType;
 }
 
 export type StepType = "chat" | "echo" | "setVariables";
@@ -79,6 +84,7 @@ export interface StepFormState {
   conversationEnabled: boolean;
   parameters: KeyValueEntry[];
   tools: string[];
+  variableTypes?: Record<string, WorkflowVariableDataType>;
 }
 
 export interface OutcomeFormState {

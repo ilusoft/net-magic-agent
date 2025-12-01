@@ -15,6 +15,10 @@ public sealed record AgentStepExecutionResult(string Name, string Type, string O
 
     public IReadOnlyDictionary<string, string>? ResolvedParameters { get; init; }
 
+    public IReadOnlyDictionary<string, WorkflowParameterDebugInfo>? ParameterDebug { get; init; }
+
+    public IReadOnlyDictionary<string, WorkflowVariableDebugInfo>? VariableDebug { get; init; }
+
     public JsonElement? ThreadContext { get; init; }
 
     public string? Outcome { get; init; }
@@ -38,6 +42,17 @@ public sealed record AgentToolCall(
     string? ErrorMessage,
     string? ErrorDetails,
     string? ErrorCode);
+
+public sealed record WorkflowVariableDebugInfo(
+    string RawValue,
+    string ConvertedValue,
+    WorkflowVariableDataType Type,
+    string? Error);
+
+public sealed record WorkflowParameterDebugInfo(
+    string OriginalValue,
+    string ResolvedValue,
+    IReadOnlyList<string> Placeholders);
 
 public sealed record AgentRunResult(
     string AgentId,

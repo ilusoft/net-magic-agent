@@ -1,9 +1,6 @@
-using System.IO;
-using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using MagicAgent.Api.Application.AgentRunner;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace MagicAgent.Api.Infrastructure.AgentRunner;
@@ -27,6 +24,11 @@ public sealed class FileAgentDefinitionsProvider : IAgentDefinitionsProvider
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _environment = environment ?? throw new ArgumentNullException(nameof(environment));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
+        if (!SerializerOptions.Converters.Any(converter => converter is JsonStringEnumConverter))
+        {
+            SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+        }
     }
 
     public async Task<AgentDefinitionsDocument> GetDefinitionsAsync(CancellationToken cancellationToken = default)

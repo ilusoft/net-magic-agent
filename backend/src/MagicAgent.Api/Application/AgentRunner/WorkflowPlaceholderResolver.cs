@@ -10,7 +10,7 @@ internal static partial class WorkflowPlaceholderResolver
     private static readonly StringComparer Comparer = StringComparer.OrdinalIgnoreCase;
     private static readonly IReadOnlyDictionary<string, string> EmptyDictionary = new Dictionary<string, string>(Comparer);
 
-    internal static IReadOnlyDictionary<string, string> ResolveDictionary(
+    internal static WorkflowParameterResolution ResolveDictionaryWithDebug(
         IDictionary<string, string>? source,
         IReadOnlyDictionary<string, string> variables,
         IReadOnlyDictionary<string, string>? workflowParameters,
@@ -19,17 +19,33 @@ internal static partial class WorkflowPlaceholderResolver
     {
         if (source is null || source.Count == 0)
         {
-            return EmptyDictionary;
+            return new WorkflowParameterResolution(EmptyDictionary, new Dictionary<string, WorkflowParameterDebugInfo>(Comparer));
         }
 
         var resolved = new Dictionary<string, string>(source.Count, Comparer);
+        var debug = new Dictionary<string, WorkflowParameterDebugInfo>(source.Count, Comparer);
 
         foreach (var kvp in source)
         {
-            resolved[kvp.Key] = ResolveString(kvp.Value, variables, workflowParameters, stepInput, lastStepOutput);
+            var (value, placeholders) = ResolveStringWithDebug(kvp.Value ?? string.Empty, variables, workflowParameters, stepInput, lastStepOutput);
+            resolved[kvp.Key] = value;
+            debug[kvp.Key] = new WorkflowParameterDebugInfo(
+                kvp.Value ?? string.Empty,
+                value,
+                placeholders);
         }
 
-        return resolved;
+        return new WorkflowParameterResolution(resolved, debug);
+    }
+
+    internal static IReadOnlyDictionary<string, string> ResolveDictionary(
+        IDictionary<string, string>? source,
+        IReadOnlyDictionary<string, string> variables,
+        IReadOnlyDictionary<string, string>? workflowParameters,
+        string? stepInput,
+        string? lastStepOutput)
+    {
+        return ResolveDictionaryWithDebug(source, variables, workflowParameters, stepInput, lastStepOutput).ResolvedValues;
     }
 
     internal static string ResolveString(
@@ -38,15 +54,35 @@ internal static partial class WorkflowPlaceholderResolver
         IReadOnlyDictionary<string, string>? workflowParameters,
         string? stepInput,
         string? lastStepOutput)
+        => ResolveStringWithDebug(value, variables, workflowParameters, stepInput, lastStepOutput).ResolvedValue;
+
+    private static (string ResolvedValue, IReadOnlyList<string> Placeholders) ResolveStringWithDebug(
+        string value,
+        IReadOnlyDictionary<string, string> variables,
+        IReadOnlyDictionary<string, string>? workflowParameters,
+        string? stepInput,
+        string? lastStepOutput)
     {
-        if (string.IsNullOrEmpty(value))
+        var source = value ?? string.Empty;
+
+        if (string.IsNullOrEmpty(source))
         {
-            return value;
+            return (source, Array.Empty<string>());
         }
 
         var parameterDictionary = workflowParameters ?? EmptyDictionary;
+        var placeholderList = new List<string>();
+        var placeholderSet = new HashSet<string>(Comparer);
 
-        return PlaceholderPatternRegex.Replace(value, match =>
+        void RecordPlaceholder(string expression)
+        {
+            if (!string.IsNullOrWhiteSpace(expression) && placeholderSet.Add(expression))
+            {
+                placeholderList.Add(expression);
+            }
+        }
+
+        var resolved = PlaceholderPatternRegex.Replace(source, match =>
         {
             var expression = match.Groups["expr"].Value.Trim();
 
@@ -57,19 +93,23 @@ internal static partial class WorkflowPlaceholderResolver
 
             if (Comparer.Equals(expression, "input"))
             {
+                RecordPlaceholder(expression);
                 return stepInput ?? string.Empty;
             }
 
             if (Comparer.Equals(expression, "lastOutput"))
             {
+                RecordPlaceholder(expression);
                 return lastStepOutput ?? string.Empty;
             }
 
             if (TryResolveWorkflowParameter(expression, parameterDictionary, out var parameterValue))
             {
+                RecordPlaceholder(expression);
                 return parameterValue ?? string.Empty;
             }
 
+            var originalExpression = expression;
             if (expression.StartsWith(VariablePrefix, StringComparison.OrdinalIgnoreCase))
             {
                 expression = expression[VariablePrefix.Length..];
@@ -77,11 +117,18 @@ internal static partial class WorkflowPlaceholderResolver
 
             if (variables.TryGetValue(expression, out var variableValue))
             {
+                RecordPlaceholder(originalExpression);
                 return variableValue ?? string.Empty;
             }
 
             return match.Value;
         });
+
+        var placeholders = placeholderList.Count == 0
+            ? Array.Empty<string>()
+            : placeholderList.ToArray();
+
+        return (resolved, placeholders);
     }
 
     private static bool TryResolveWorkflowParameter(
@@ -129,4 +176,10 @@ internal static partial class WorkflowPlaceholderResolver
     private static partial Regex PlaceholderPattern();
 
     private static Regex PlaceholderPatternRegex => PlaceholderPattern();
+
+    internal sealed record WorkflowParameterResolution(
+        IReadOnlyDictionary<string, string> ResolvedValues,
+        IReadOnlyDictionary<string, WorkflowParameterDebugInfo> Debug);
+
+    // WorkflowParameterDebugInfo is defined elsewhere
 }

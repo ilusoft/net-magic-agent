@@ -8,7 +8,11 @@ import {
 import { Maximize2 } from "lucide-react";
 
 import { DialogShell } from "../DialogShell";
-import { type KeyValueEntry, type StepFormState } from "../types";
+import {
+  type KeyValueEntry,
+  type StepFormState,
+  type WorkflowVariableDataType,
+} from "../types";
 
 export interface StepDialogBaseProps {
   open: boolean;
@@ -29,6 +33,10 @@ export interface StepDialogBaseProps {
     entryId: string,
     field: "key" | "value"
   ) => (event: ChangeEvent<HTMLInputElement>) => void;
+  onParameterDataTypeChange?: (
+    entryId: string,
+    dataType: WorkflowVariableDataType
+  ) => void;
   availableTools: { id: string; label: string }[];
   onToolToggle: (
     toolId: string
