@@ -214,6 +214,7 @@ export function AgentDefinitionsView({
     draftDocument,
     activeWorkflowId,
     applyDocumentUpdate,
+    apiBaseUrl,
   });
 
   const { stepNames, setStartStep } = useWorkflowActions({

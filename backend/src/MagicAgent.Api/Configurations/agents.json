@@ -200,9 +200,7 @@
           "conversation": {
             "enabled": true
           },
-          "tools": [
-            "create-pricing-group-tools"
-          ],
+          "tools": ["create-pricing-group-tools"],
           "stopOnToolError": false,
           "inputSource": "usePrevious",
           "outcomes": [
@@ -228,9 +226,7 @@
           "conversation": {
             "enabled": true
           },
-          "tools": [
-            "edit-pricing-tool"
-          ],
+          "tools": ["edit-pricing-tool"],
           "stopOnToolError": false,
           "inputSource": "usePrevious",
           "outcomes": [

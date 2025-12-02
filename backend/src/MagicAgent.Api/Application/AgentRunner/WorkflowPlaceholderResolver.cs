@@ -1,4 +1,6 @@
+using System.Text;
 using System.Text.RegularExpressions;
+using MagicAgent.Api.Application.Expressions;
 
 namespace MagicAgent.Api.Application.AgentRunner;
 
@@ -9,6 +11,16 @@ internal static partial class WorkflowPlaceholderResolver
     private const string ParameterPrefixLong = "parameter.";
     private static readonly StringComparer Comparer = StringComparer.OrdinalIgnoreCase;
     private static readonly IReadOnlyDictionary<string, string> EmptyDictionary = new Dictionary<string, string>(Comparer);
+    private static readonly Regex ExpressionEnvelopeRegex = new(
+        "\\$\\{\\{(?<expr>.*?)\\}\\}",
+        RegexOptions.CultureInvariant | RegexOptions.Singleline);
+
+    private static IWorkflowExpressionEvaluator? _expressionEvaluator;
+
+    public static void Configure(IWorkflowExpressionEvaluator evaluator)
+    {
+        _expressionEvaluator = evaluator ?? throw new ArgumentNullException(nameof(evaluator));
+    }
 
     internal static WorkflowParameterResolution ResolveDictionaryWithDebug(
         IDictionary<string, string>? source,
@@ -27,12 +39,13 @@ internal static partial class WorkflowPlaceholderResolver
 
         foreach (var kvp in source)
         {
-            var (value, placeholders) = ResolveStringWithDebug(kvp.Value ?? string.Empty, variables, workflowParameters, stepInput, lastStepOutput);
+            var (value, placeholders, expressionErrors) = ResolveStringWithDebug(kvp.Value ?? string.Empty, variables, workflowParameters, stepInput, lastStepOutput);
             resolved[kvp.Key] = value;
             debug[kvp.Key] = new WorkflowParameterDebugInfo(
                 kvp.Value ?? string.Empty,
                 value,
-                placeholders);
+                placeholders,
+                expressionErrors);
         }
 
         return new WorkflowParameterResolution(resolved, debug);
@@ -56,7 +69,7 @@ internal static partial class WorkflowPlaceholderResolver
         string? lastStepOutput)
         => ResolveStringWithDebug(value, variables, workflowParameters, stepInput, lastStepOutput).ResolvedValue;
 
-    private static (string ResolvedValue, IReadOnlyList<string> Placeholders) ResolveStringWithDebug(
+    private static (string ResolvedValue, IReadOnlyList<string> Placeholders, IReadOnlyList<string> ExpressionErrors) ResolveStringWithDebug(
         string value,
         IReadOnlyDictionary<string, string> variables,
         IReadOnlyDictionary<string, string>? workflowParameters,
@@ -67,12 +80,13 @@ internal static partial class WorkflowPlaceholderResolver
 
         if (string.IsNullOrEmpty(source))
         {
-            return (source, Array.Empty<string>());
+            return (source, Array.Empty<string>(), Array.Empty<string>());
         }
 
         var parameterDictionary = workflowParameters ?? EmptyDictionary;
         var placeholderList = new List<string>();
         var placeholderSet = new HashSet<string>(Comparer);
+        var expressionErrors = new List<string>();
 
         void RecordPlaceholder(string expression)
         {
@@ -82,7 +96,16 @@ internal static partial class WorkflowPlaceholderResolver
             }
         }
 
-        var resolved = PlaceholderPatternRegex.Replace(source, match =>
+        var resolved = ReplaceExpressionEnvelopes(
+            source,
+            variables,
+            workflowParameters,
+            stepInput,
+            lastStepOutput,
+            RecordPlaceholder,
+            expressionErrors);
+
+        resolved = PlaceholderPatternRegex.Replace(resolved, match =>
         {
             var expression = match.Groups["expr"].Value.Trim();
 
@@ -128,7 +151,105 @@ internal static partial class WorkflowPlaceholderResolver
             ? Array.Empty<string>()
             : placeholderList.ToArray();
 
-        return (resolved, placeholders);
+        return (resolved, placeholders, expressionErrors);
+    }
+
+    private static string ReplaceExpressionEnvelopes(
+        string source,
+        IReadOnlyDictionary<string, string> variables,
+        IReadOnlyDictionary<string, string>? workflowParameters,
+        string? stepInput,
+        string? lastStepOutput,
+        Action<string> recordPlaceholder,
+        List<string> expressionErrors)
+    {
+        if (string.IsNullOrEmpty(source))
+        {
+            return source;
+        }
+
+        var evaluator = _expressionEvaluator;
+
+        if (evaluator is null)
+        {
+            return source;
+        }
+
+        var builder = new StringBuilder(source.Length);
+        var cursor = 0;
+
+        while (cursor < source.Length)
+        {
+            var start = source.IndexOf("${{", cursor, StringComparison.Ordinal);
+            if (start < 0)
+            {
+                builder.Append(source, cursor, source.Length - cursor);
+                break;
+            }
+
+            builder.Append(source, cursor, start - cursor);
+
+            var end = source.IndexOf("}}", start + 3, StringComparison.Ordinal);
+            if (end < 0)
+            {
+                builder.Append(source, start, source.Length - start);
+                break;
+            }
+
+            var expressionBody = source.Substring(start + 3, end - start - 3).Trim();
+
+            if (string.IsNullOrEmpty(expressionBody))
+            {
+                builder.Append(source, start, end - start + 2);
+                cursor = end + 2;
+                continue;
+            }
+
+            var evalContext = BuildExpressionContext(variables, workflowParameters, stepInput, lastStepOutput);
+            var result = evaluator.Evaluate(expressionBody, evalContext);
+
+            if (result.Success)
+            {
+                foreach (var reference in result.ReferencedIdentifiers ?? [])
+                {
+                    recordPlaceholder(reference);
+                }
+
+                builder.Append(result.Value?.ToDisplayString() ?? string.Empty);
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(result.ErrorMessage))
+                {
+                    expressionErrors.Add($"{expressionBody}: {result.ErrorMessage}");
+                }
+
+                builder.Append(source, start, end - start + 2);
+            }
+
+            cursor = end + 2;
+        }
+
+        return builder.ToString();
+    }
+
+    private static WorkflowExpressionContext BuildExpressionContext(
+        IReadOnlyDictionary<string, string> variables,
+        IReadOnlyDictionary<string, string>? workflowParameters,
+        string? stepInput,
+        string? lastStepOutput)
+    {
+        var variableValues = variables?.ToDictionary(
+            kvp => kvp.Key,
+            kvp => WorkflowExpressionValue.FromString(kvp.Value),
+            Comparer) ?? new Dictionary<string, WorkflowExpressionValue>(Comparer);
+
+        var parameterValues = workflowParameters?.ToDictionary(
+            kvp => kvp.Key,
+            kvp => WorkflowExpressionValue.FromString(kvp.Value),
+            Comparer) ?? new Dictionary<string, WorkflowExpressionValue>(Comparer);
+
+        return new WorkflowExpressionContext(variableValues, parameterValues, stepInput, lastStepOutput);
     }
 
     private static bool TryResolveWorkflowParameter(

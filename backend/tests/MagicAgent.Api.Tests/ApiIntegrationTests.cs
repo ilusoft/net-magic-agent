@@ -2,15 +2,14 @@ using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
 using MagicAgent.Api.Application.AgentRunner;
-using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace MagicAgent.Api.Tests;
 
-public class ApiIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+public class ApiIntegrationTests : IClassFixture<TestApiFactory>
 {
     private readonly HttpClient _client;
 
-    public ApiIntegrationTests(WebApplicationFactory<Program> factory)
+    public ApiIntegrationTests(TestApiFactory factory)
     {
         _client = factory.CreateClient();
     }
@@ -30,16 +29,20 @@ public class ApiIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var runResult = await response.Content.ReadFromJsonAsync<AgentRunResult>();
+        var summary = await response.Content.ReadFromJsonAsync<AgentWorkflowResultDto>();
 
-        runResult.Should().NotBeNull();
-        runResult!.AgentId.Should().Be("chat-agent");
-        runResult.Status.Should().Be("completed");
-        runResult.Steps.Should().ContainSingle()
-            .Which.Output.Should().Contain("[agent-framework-fallback]");
-
-        runResult.CompletedAt.Should().NotBe(default);
+        summary.Should().NotBeNull();
+        summary!.AgentId.Should().Be("chat-agent");
+        summary.Status.Should().Be("completed");
+        summary.LastStep.Should().NotBeNull();
+        summary.LastStep!.Output.Should().Contain("[agent-framework-fallback]");
     }
+
+    private sealed record AgentWorkflowResultDto(
+        string AgentId,
+        string Status,
+        AgentStepExecutionResult? LastStep,
+        string? ConversationId);
 
     [Fact]
     public async Task AgentRun_Post_WithUnknownAgent_ReturnsNotFound()
@@ -48,4 +51,5 @@ public class ApiIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
+
 }

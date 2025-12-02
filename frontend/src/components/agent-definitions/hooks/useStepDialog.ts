@@ -30,6 +30,7 @@ interface UseStepDialogOptions {
   draftDocument: AgentDefinitionsDocument | null;
   activeWorkflowId: string | null;
   applyDocumentUpdate: ApplyDocumentUpdate;
+  apiBaseUrl: string;
 }
 
 const STEP_TYPE_PARAMETER_TEMPLATES: Record<StepType, string[]> = {
@@ -159,6 +160,7 @@ interface UseStepDialogResult {
     stepForm: StepFormState | null;
     stepFormError: string | null;
     workflowParameters: KeyValueEntry[];
+    apiBaseUrl: string;
     onClose: () => void;
     onSubmit: (event: FormEvent<HTMLFormElement>) => void;
     onFieldChange: (
@@ -194,6 +196,7 @@ export function useStepDialog({
   draftDocument,
   activeWorkflowId,
   applyDocumentUpdate,
+  apiBaseUrl,
 }: UseStepDialogOptions): UseStepDialogResult {
   const [isOpen, setIsOpen] = useState(false);
   const [mode, setMode] = useState<"create" | "edit">("edit");
@@ -663,6 +666,7 @@ export function useStepDialog({
       stepForm,
       stepFormError,
       workflowParameters: workflowParameters,
+      apiBaseUrl,
       onClose: reset,
       onSubmit: handleSubmit,
       onFieldChange: handleFieldChange,

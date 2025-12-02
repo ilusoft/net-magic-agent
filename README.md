@@ -80,6 +80,109 @@ magic-agent/
     └── architecture/                   # Extended design notes, diagrams
 ```
 
+## Workflow Expression Language (roadmap)
+
+We are extending the existing `{{placeholder}}` resolution into a full expression language so workflow authors can compose parameter and variable values without bespoke step code. This section captures the initial contract that will guide implementation and documentation.
+
+### Goals
+
+1. Preserve backwards-compatible simple substitutions (string-only expressions continue to work).
+2. Add math/logic so numeric variables can be computed inline.
+3. Allow JSON/object graph traversal when variables or parameters contain structured data.
+4. Support helper functions that encapsulate reusable transformations, discoverable through backend metadata.
+
+### Expression envelope
+
+- Simple substitutions keep `{{ expr }}`.
+- Expression-enabled placeholders use `${{ expr }}` to avoid ambiguity with legacy replacements.
+- Multiple expressions within one string are allowed; non-expression text is preserved verbatim.
+- Expressions evaluate to a string for substitution but can operate internally on numbers, booleans, or JSON values.
+
+### Literals & types
+
+| Literal  | Examples                   | Notes                                    |
+| -------- | -------------------------- | ---------------------------------------- |
+| Numbers  | `42`, `3.14`, `.5`, `1e-3` | Culture invariant (`.` decimal); doubles |
+| Strings  | `'hello'`, `"world"`       | Support standard escape sequences        |
+| Booleans | `true`, `false`            | Case-insensitive                         |
+| Null     | `null`                     | Propagates as empty string when written  |
+| JSON     | `{"a":1}`, `[1,2,3]`       | Parsed into `JsonElement`                |
+
+### Identifiers & path access
+
+- Root identifiers: `var.<name>`, `param.<name>` (alias `parameter.`), `input`, `lastOutput`.
+- Dot notation accesses object members: `var.order.total`.
+- Index notation uses zero-based integers inside brackets: `var.items[0].price`.
+- Mixed access (`var.matrix[1][2]`) allowed; invalid paths yield evaluation errors surfaced in debug info.
+
+### Operators
+
+Operator precedence from highest to lowest:
+
+1. Parentheses `( )`
+2. Function calls `fn(expr, ...)`
+3. Unary `+`, `-`, logical `!`
+4. Exponent `^` (right-associative)
+5. Multiplicative `*`, `/`, `%`
+6. Additive `+`, `-`
+7. Comparisons `=`, `!=`, `<`, `<=`, `>`, `>=` (future-proof; may not be in first milestone)
+8. Logical `&&`, `||` (future-proof)
+
+Division is floating point; integer division is not special-cased.
+
+### Helper functions
+
+- Helpers live in static classes; each method is decorated with a `[WorkflowHelper("abs", ReturnType.Number, Description = "Absolute value")]` attribute (final naming TBD).
+- Evaluator resolves helper names case-insensitively and performs type coercion for supported primitives/JsonElement.
+- Initial helper catalog: `abs`, `sqr`, `sqrt`, `pow`, `min`, `max`, `substring(value, start, length?)`, `length`, `upper`, `lower`, `coalesce`, `json(value)`.
+
+### Helper metadata endpoint
+
+- Backend scans helper classes on startup and exposes `GET /api/workflows/helpers`.
+- Response shape:
+
+  ```jsonc
+  [
+    {
+      "name": "abs",
+      "description": "Returns the absolute value of a number.",
+      "returnType": "number",
+      "parameters": [
+        { "name": "value", "type": "number", "description": "Input operand." }
+      ]
+    }
+  ]
+  ```
+
+- UI consumes this endpoint to populate helper pickers and inline documentation.
+
+### Evaluation semantics
+
+- Tokenizer/parser must be whitespace-tolerant.
+- All numeric math uses `double` (`InvariantCulture` for formatting when converted to string).
+- When an expression evaluates to JSON and the surrounding context expects a scalar, serialize using compact JSON.
+- Errors do not crash the workflow; we fall back to the original `{{expr}}` literal and record the error in `WorkflowParameterDebugInfo`.
+- Variable assignments keep both the rendered string and parsed `JsonElement` (when type = JSON) so downstream steps can access structured data.
+
+### Open items / validation rules
+
+- Decide whether implicit conversions (string → number) are automatic or opt-in.
+- Determine escaping rules for `}}` inside string literals.
+- Extend unit/integration tests to cover operator precedence, helper invocation, JSON path errors, and metadata endpoint.
+
+Update this section as syntax or helper contracts evolve so backend and frontend stay aligned.
+
+### Expression engine implementation plan
+
+We will implement a dedicated expression subsystem under `MagicAgent.Api/Application/Expressions` so it can evolve independently from the workflow runner:
+
+1. **Tokenizer & Pratt parser** – Custom lexer + Pratt parser generate an AST representing literals, identifiers, helper calls, JSON path accesses, and unary/binary operators. This keeps precedence rules codified in one place and allows future extensions (comparisons, logical ops) without touching workflow logic.
+2. **Evaluator** – AST visitor that executes expressions against an `ExpressionContext` (variables, parameters, helper registry, input/lastOutput). It manages type coercion, JsonElement traversal, and error capture.
+3. **Helper registry** – Reflection-driven component that discovers `[WorkflowHelper]`-decorated static methods, exposes metadata for the `/api/workflows/helpers` endpoint, and supplies delegates to the evaluator.
+4. **Integration seam** – `WorkflowPlaceholderResolver` treats the expression engine as a black box (`IWorkflowExpressionEvaluator`). The resolver is responsible only for locating `{{ expr }}` segments, delegating evaluation, and wiring debug info.
+
+This separation ensures the workflow engine can swap in a different evaluator (or mock) later by replacing the implementation behind the interface, keeping the core step execution logic untouched.
+
 ## Agent Configuration JSON
 
 Agent behavior is driven by JSON definitions persisted under `configs/agents`. A single file can encapsulate one workflow or a suite of related scenarios.

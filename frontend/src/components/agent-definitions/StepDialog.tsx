@@ -43,6 +43,7 @@ export function StepDialog(props: StepDialogProps) {
     ...rest,
     title: `${props.title} – ${typeLabel}`,
     stepForm,
+    apiBaseUrl: props.apiBaseUrl,
   };
 
   switch (stepForm.type) {

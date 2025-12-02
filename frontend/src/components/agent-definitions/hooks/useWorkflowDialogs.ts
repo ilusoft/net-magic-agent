@@ -11,12 +11,14 @@ interface UseWorkflowDialogsOptions {
   draftDocument: AgentDefinitionsDocument | null;
   activeWorkflowId: string | null;
   applyDocumentUpdate: ApplyDocumentUpdate;
+  apiBaseUrl: string;
 }
 
 export function useWorkflowDialogs({
   draftDocument,
   activeWorkflowId,
   applyDocumentUpdate,
+  apiBaseUrl,
 }: UseWorkflowDialogsOptions) {
   const {
     dialogProps,
@@ -28,6 +30,7 @@ export function useWorkflowDialogs({
     draftDocument,
     activeWorkflowId,
     applyDocumentUpdate,
+    apiBaseUrl,
   });
 
   const {

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using MagicAgent.Api.Application.AgentRunner;
+using MagicAgent.Api.Application.Expressions;
 using MagicAgent.Api.Infrastructure.AgentRunner;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -38,6 +39,7 @@ builder.Services.AddSingleton<IAgentConversationStore, InMemoryAgentConversation
 builder.Services.AddSingleton<IAgentDiagnosticsStore, InMemoryAgentDiagnosticsStore>();
 builder.Services.AddSingleton<IAgentRunProgressSink, NoOpAgentRunProgressSink>();
 builder.Services.AddSingleton<IAgentRunner, DefaultAgentRunner>();
+builder.Services.AddWorkflowExpressionServices();
 
 var app = builder.Build();
 

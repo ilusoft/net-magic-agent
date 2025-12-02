@@ -52,7 +52,8 @@ public sealed record WorkflowVariableDebugInfo(
 public sealed record WorkflowParameterDebugInfo(
     string OriginalValue,
     string ResolvedValue,
-    IReadOnlyList<string> Placeholders);
+    IReadOnlyList<string> Placeholders,
+    IReadOnlyList<string> ExpressionErrors);
 
 public sealed record AgentRunResult(
     string AgentId,

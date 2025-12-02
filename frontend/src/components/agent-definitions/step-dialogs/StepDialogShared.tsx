@@ -7,6 +7,7 @@ import {
 
 import { Maximize2 } from "lucide-react";
 
+import { ExpressionBuilderButton } from "../expression-builder/ExpressionBuilderDialog";
 import { DialogShell } from "../DialogShell";
 import {
   type KeyValueEntry,
@@ -21,6 +22,7 @@ export interface StepDialogBaseProps {
   stepForm: StepFormState;
   stepFormError: string | null;
   workflowParameters: KeyValueEntry[];
+  apiBaseUrl: string;
   onClose: () => void;
   onSubmit: FormEventHandler<HTMLFormElement>;
   onFieldChange: (
@@ -60,6 +62,7 @@ export interface ParameterListProps {
   onRemove: (entryId: string) => void;
   onParameterChange: StepDialogBaseProps["onParameterChange"];
   onExpandValue: (entryId: string, value: string | undefined) => void;
+  apiBaseUrl: string;
 }
 
 export function StepDialogContainer({
@@ -179,6 +182,7 @@ export function ParameterList({
   onRemove,
   onParameterChange,
   onExpandValue,
+  apiBaseUrl,
 }: ParameterListProps) {
   return (
     <div className="space-y-2">
@@ -208,6 +212,7 @@ export function ParameterList({
               onParameterChange={onParameterChange}
               onRemove={onRemove}
               onExpandValue={onExpandValue}
+              apiBaseUrl={apiBaseUrl}
             />
           ))}
         </div>
@@ -221,14 +226,21 @@ function ParameterListItem({
   onParameterChange,
   onRemove,
   onExpandValue,
+  apiBaseUrl,
 }: {
   entry: KeyValueEntry;
   onParameterChange: StepDialogBaseProps["onParameterChange"];
   onRemove: (entryId: string) => void;
   onExpandValue: (entryId: string, value: string | undefined) => void;
+  apiBaseUrl: string;
 }) {
+  const applyExpression = (nextValue: string) => {
+    const handler = onParameterChange(entry.id, "value");
+    handler({ target: { value: nextValue } } as ChangeEvent<HTMLInputElement>);
+  };
+
   return (
-    <div className="grid grid-cols-[1fr_auto_1fr_auto_auto] items-center gap-2">
+    <div className="grid grid-cols-[1fr_auto_minmax(0,1fr)_auto_auto_auto] items-center gap-2">
       <input
         type="text"
         placeholder="Parameter name"
@@ -243,6 +255,11 @@ function ParameterListItem({
         value={entry.value}
         onChange={onParameterChange(entry.id, "value")}
         className="rounded-md border border-border bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+      />
+      <ExpressionBuilderButton
+        value={entry.value}
+        onApply={applyExpression}
+        apiBaseUrl={apiBaseUrl}
       />
       <button
         type="button"
@@ -361,6 +378,7 @@ export function StandardStepDialog({
           onRemove={props.onRemoveParameter}
           onParameterChange={props.onParameterChange}
           onExpandValue={expandedEditor.open}
+          apiBaseUrl={props.apiBaseUrl}
         />
         {showTools && props.availableTools.length > 0 ? (
           <div className="space-y-2">
