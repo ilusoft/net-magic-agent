@@ -20,6 +20,7 @@ namespace MagicAgent.Api.Application.Expressions
                     typeof(DateWorkflowHelpers),
                     typeof(StringWorkflowHelpers),
                     typeof(JsonWorkflowHelpers),
+                    typeof(ArrayWorkflowHelpers),
                 };
 
                 return new WorkflowHelperRegistry(helperTypes);

@@ -239,6 +239,80 @@ public class StepOutcomeResolverTests
         result.EndWorkflow.Should().BeFalse();
     }
 
+    [Fact]
+    public void ResolveNextStep_TreatsNumericExpressionAsTruthful()
+    {
+        var definition = CreateDefinition(
+            CreateOutcomes(
+                new AgentStepOutcomeDefinition
+                {
+                    Name = "numericTrue",
+                    NextStep = "Research Agent",
+                    Order = 1,
+                    Condition = new AgentStepOutcomeConditionDefinition { Expression = "5" },
+                },
+                new AgentStepOutcomeDefinition
+                {
+                    Name = "fallback",
+                    NextStep = "Escalate Risk",
+                    Order = 2,
+                }));
+
+        var step = definition.Steps[0];
+        var stepLookup = BuildStepLookup(definition);
+
+        var result = StepOutcomeResolver.ResolveNextStep(
+            definition,
+            stepLookup,
+            step,
+            stepInput: null,
+            output: string.Empty,
+            lastOutput: null,
+            variables: EmptyExpressions(),
+            parameters: EmptyExpressions(),
+            expressionEvaluator: Evaluator,
+            logger: NullLogger.Instance);
+
+        result.Outcome.Should().Be("numericTrue");
+    }
+
+    [Fact]
+    public void ResolveNextStep_TreatsEmptyStringExpressionAsFalse()
+    {
+        var definition = CreateDefinition(
+            CreateOutcomes(
+                new AgentStepOutcomeDefinition
+                {
+                    Name = "emptyString",
+                    NextStep = "Research Agent",
+                    Order = 1,
+                    Condition = new AgentStepOutcomeConditionDefinition { Expression = "\"\"" },
+                },
+                new AgentStepOutcomeDefinition
+                {
+                    Name = "fallback",
+                    NextStep = "Escalate Risk",
+                    Order = 2,
+                }));
+
+        var step = definition.Steps[0];
+        var stepLookup = BuildStepLookup(definition);
+
+        var result = StepOutcomeResolver.ResolveNextStep(
+            definition,
+            stepLookup,
+            step,
+            stepInput: null,
+            output: string.Empty,
+            lastOutput: null,
+            variables: EmptyExpressions(),
+            parameters: EmptyExpressions(),
+            expressionEvaluator: Evaluator,
+            logger: NullLogger.Instance);
+
+        result.Outcome.Should().Be("fallback");
+    }
+
     private static AgentDefinition CreateDefinition(List<AgentStepOutcomeDefinition>? initialOutcomes = null)
     {
         return new AgentDefinition

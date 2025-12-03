@@ -13,7 +13,8 @@
           "name": "general chat agent",
           "type": "chat",
           "parameters": {
-            "systemPrompt": "You are an expert ${{ var.languages.values[iterator] }} translator agent. You should take any input text provided and translate it. The only expected output is the translated text."
+            "systemPrompt": "You are an expert ${{ var.languages.values[iterator] }} translator agent. You should take any input text provided and translate it. The only expected output is the translated text.",
+            "message": "{{var.originalInput}}"
           },
           "variableTypes": {},
           "provider": "azure-openai",
@@ -36,7 +37,7 @@
               "name": "check-languages-length",
               "nextStep": "increment-iterator",
               "condition": {
-                "expression": "var.iterator \u003E arrayLength( var.languages.values )"
+                "expression": "var.iterator \u003C arrayLength( var.languages.values )"
               },
               "endWorkflow": false,
               "order": 1
@@ -48,12 +49,16 @@
           "name": "set-initial-vars",
           "type": "setVariables",
           "parameters": {
+            "originalInput": "{{input}}",
             "languages": "${{ { \u0022values\u0022: [\u0022spanish\u0022, \u0022french\u0022, \u0022german\u0022, \u0022portuguese\u0022] } }}",
-            "iterator": "0"
+            "iterator": "0",
+            "translations": "${{ [] }}"
           },
           "variableTypes": {
+            "originalInput": "string",
             "languages": "json",
-            "iterator": "number"
+            "iterator": "number",
+            "translations": "json"
           },
           "provider": "azure-openai",
           "options": {},
@@ -76,9 +81,13 @@
           "name": "set-out-vars",
           "type": "setVariables",
           "parameters": {
-            "combinedOutput": "[{{var.currentDate}}] {{var.originalInput}} ==\u003E {{lastOutput}}"
+            "translations": "${{ addToArray(lastOutput, var.translations) }}",
+            "combinedOutput": "{{var.originalInput}} ==\u003E \n                 \n   - Spanish : \n        ${{ var.translations[0] }}\n   \n   - French :\n        ${{ var.translations[1] }}\n\n   - German :\n        ${{ var.translations[2] }}\n\n   - Portuguese :\n        ${{ var.translations[3] }}"
           },
-          "variableTypes": {},
+          "variableTypes": {
+            "translations": "json",
+            "combinedOutput": "string"
+          },
           "provider": "azure-openai",
           "options": {},
           "conversation": null,
@@ -124,10 +133,12 @@
           "name": "increment-iterator",
           "type": "setVariables",
           "parameters": {
-            "iterator": "${{ var.iterator \u002B 1 }}"
+            "iterator": "${{ var.iterator \u002B 1 }}",
+            "translations": "${{ addToArray(lastOutput, var.translations) }}"
           },
           "variableTypes": {
-            "iterator": "number"
+            "iterator": "number",
+            "translations": "json"
           },
           "provider": "azure-openai",
           "options": {},
@@ -174,7 +185,7 @@
           },
           "qualify-pricing-production-output-echo": {
             "x": -90.5,
-            "y": 191,
+            "y": 207,
             "handles": null
           },
           "qualify-pricing-production-termination-finish": {
@@ -252,18 +263,39 @@
                 "handles": null
               }
             ]
+          },
+          "qualify-pricing-production-start-qualify-pricing-production-set-initial-vars": {
+            "controlPoints": [
+              {
+                "x": 272,
+                "y": -320,
+                "handles": null
+              }
+            ]
+          },
+          "qualify-pricing-production-output-echo-finish": {
+            "controlPoints": [
+              {
+                "x": 0,
+                "y": 288,
+                "handles": null
+              }
+            ]
           }
         },
         "viewport": {
           "position": {
-            "x": 942.7901420982985,
-            "y": 505.7263082822743,
+            "x": 772.3524251557737,
+            "y": 632.6149624753662,
             "handles": null
           },
-          "zoom": 0.9356843249451623
+          "zoom": 1.336160939750623
         }
       },
-      "streaming": null
+      "streaming": {
+        "enabled": true,
+        "mode": "sse"
+      }
     }
   ]
 }

@@ -197,7 +197,7 @@ public sealed class DefaultAgentRunner(
                 parameters,
                 stepInput,
                 lastStepOutput);
-            var resolvedParameters = parameterResolution.ResolvedValues;
+            var resolvedParameters = parameterResolution.Values;
 
             // resolvedOptions are forwarded to every step—even if the current implementation does not
             // consume them—so future step types (e.g. tool invocations, scripted actions, advanced
@@ -306,8 +306,8 @@ public sealed class DefaultAgentRunner(
       string? conversationId,
       IReadOnlyList<AITool> tools,
       JsonElement? threadState,
-      IReadOnlyDictionary<string, string> resolvedParameters,
-      IReadOnlyDictionary<string, string> resolvedOptions,
+      IReadOnlyDictionary<string, WorkflowExpressionValue> resolvedParameters,
+      IReadOnlyDictionary<string, WorkflowExpressionValue> resolvedOptions,
       IReadOnlyDictionary<string, WorkflowParameterDebugInfo> parameterDebug,
       IDictionary<string, string> workflowVariables,
       IDictionary<string, WorkflowVariableState> workflowVariableStates,
@@ -331,11 +331,13 @@ public sealed class DefaultAgentRunner(
 
         if (step.Type.Equals("echo", StringComparison.OrdinalIgnoreCase))
         {
-            var message = resolvedParameters.TryGetValue("message", out var value) ? value : string.Empty;
+            var message = resolvedParameters.TryGetValue("message", out var value)
+                ? WorkflowExpressionValueConverter.ToStringValue(value)
+                : string.Empty;
             return (
                 new AgentStepExecutionResult(step.Name, step.Type, message)
                 {
-                    ResolvedParameters = resolvedParameters,
+                    ResolvedParameters = MaterializeResolvedValues(resolvedParameters),
                     ParameterDebug = parameterDebug,
                 },
                 conversationId,
@@ -351,12 +353,13 @@ public sealed class DefaultAgentRunner(
 
             foreach (var kvp in resolvedParameters)
             {
-                var resolvedValue = ResolveVariableAssignmentValue(kvp.Value, conversationId);
+                var typedValue = kvp.Value ?? WorkflowExpressionValue.FromString(string.Empty);
+                var resolvedValue = ResolveVariableAssignmentValue(WorkflowExpressionValueConverter.ToStringValue(typedValue), conversationId);
                 var targetType = declaredTypes.TryGetValue(kvp.Key, out var declaredType)
                     ? declaredType
                     : WorkflowVariableDataType.String;
 
-                var state = ConvertWorkflowVariableValue(resolvedValue, targetType);
+                var state = ConvertWorkflowVariableValue(typedValue, resolvedValue, targetType);
 
                 workflowVariables[kvp.Key] = state.ConvertedValue;
                 workflowVariableStates[kvp.Key] = state;
@@ -384,7 +387,7 @@ public sealed class DefaultAgentRunner(
         return (
             new AgentStepExecutionResult(step.Name, step.Type, fallbackOutput)
             {
-                ResolvedParameters = resolvedParameters,
+                ResolvedParameters = MaterializeResolvedValues(resolvedParameters),
                 ParameterDebug = parameterDebug,
             },
             conversationId,
@@ -443,57 +446,64 @@ public sealed class DefaultAgentRunner(
         return value;
     }
 
-    private static WorkflowVariableState ConvertWorkflowVariableValue(string rawValue, WorkflowVariableDataType targetType)
+    private static WorkflowVariableState ConvertWorkflowVariableValue(
+        WorkflowExpressionValue typedValue,
+        string rawValue,
+        WorkflowVariableDataType targetType)
     {
-        if (rawValue is null)
-        {
-            return new WorkflowVariableState(string.Empty, string.Empty, WorkflowVariableDataType.String, null);
-        }
+        typedValue ??= WorkflowExpressionValue.FromString(rawValue ?? string.Empty);
+        rawValue ??= string.Empty;
 
         string converted = rawValue;
         string? error = null;
+        var effectiveType = targetType;
 
         switch (targetType)
         {
             case WorkflowVariableDataType.Number:
-                if (double.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out var numericValue))
+                if (WorkflowExpressionValueConverter.TryConvertToNumber(typedValue, out var numericValue))
+                {
+                    converted = numericValue.ToString(CultureInfo.InvariantCulture);
+                }
+                else if (double.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out numericValue))
                 {
                     converted = numericValue.ToString(CultureInfo.InvariantCulture);
                 }
                 else
                 {
                     error = "Unable to parse number. Stored original string.";
-                    targetType = WorkflowVariableDataType.String;
+                    effectiveType = WorkflowVariableDataType.String;
                 }
                 break;
 
             case WorkflowVariableDataType.DateTime:
-                if (DateTimeOffset.TryParse(rawValue, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateTimeValue))
+                if (WorkflowExpressionValueConverter.TryConvertToDateTime(typedValue, out var dateTimeValue))
+                {
+                    converted = dateTimeValue.ToString("O", CultureInfo.InvariantCulture);
+                }
+                else if (DateTimeOffset.TryParse(rawValue, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out dateTimeValue))
                 {
                     converted = dateTimeValue.ToString("O", CultureInfo.InvariantCulture);
                 }
                 else
                 {
                     error = "Unable to parse date/time. Stored original string.";
-                    targetType = WorkflowVariableDataType.String;
+                    effectiveType = WorkflowVariableDataType.String;
                 }
                 break;
 
             case WorkflowVariableDataType.Json:
-                try
-                {
-                    using var document = JsonDocument.Parse(rawValue);
-                    converted = document.RootElement.GetRawText();
-                    error = null;
-                }
-                catch (JsonException)
-                {
-                    error = "Enter valid JSON (object or array).";
-                }
+                var (jsonConverted, jsonError) = WorkflowExpressionValueConverter.ConvertToJsonString(typedValue);
+                converted = jsonConverted;
+                error = jsonError;
                 break;
 
             case WorkflowVariableDataType.Boolean:
-                if (bool.TryParse(rawValue, out var booleanValue))
+                if (typedValue.Kind == WorkflowExpressionValueKind.Boolean)
+                {
+                    converted = (typedValue.BooleanValue ?? false) ? "true" : "false";
+                }
+                else if (bool.TryParse(rawValue, out var booleanValue))
                 {
                     converted = booleanValue ? "true" : "false";
                     error = null;
@@ -506,10 +516,11 @@ public sealed class DefaultAgentRunner(
 
             case WorkflowVariableDataType.String:
             default:
+                converted = rawValue;
                 break;
         }
 
-        return new WorkflowVariableState(rawValue, converted, targetType, error);
+        return new WorkflowVariableState(rawValue, converted, effectiveType, error);
     }
 
     private sealed record WorkflowVariableState(
@@ -600,6 +611,23 @@ public sealed class DefaultAgentRunner(
         }
     }
 
+    private static IReadOnlyDictionary<string, string> MaterializeResolvedValues(
+        IReadOnlyDictionary<string, WorkflowExpressionValue> values)
+    {
+        if (values.Count == 0)
+        {
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        var materialized = new Dictionary<string, string>(values.Count, StringComparer.OrdinalIgnoreCase);
+        foreach (var (key, value) in values)
+        {
+            materialized[key] = WorkflowExpressionValueConverter.ToStringValue(value);
+        }
+
+        return materialized;
+    }
+
     private async Task<(AgentStepExecutionResult Result, string? ConversationId, JsonElement? ThreadState, JsonElement? StepThreadContext)> ExecuteChatStepAsync(
       AgentDefinition definition,
       AgentStepDefinition step,
@@ -608,19 +636,28 @@ public sealed class DefaultAgentRunner(
       string? conversationId,
       IReadOnlyList<AITool> tools,
       JsonElement? threadState,
-      IReadOnlyDictionary<string, string> resolvedParameters,
-      IReadOnlyDictionary<string, string> resolvedOptions,
+      IReadOnlyDictionary<string, WorkflowExpressionValue> resolvedParameters,
+      IReadOnlyDictionary<string, WorkflowExpressionValue> resolvedOptions,
       IReadOnlyDictionary<string, WorkflowParameterDebugInfo> parameterDebug,
       CancellationToken cancellationToken)
     {
-        var instructions = resolvedParameters.TryGetValue("systemPrompt", out var systemPrompt) ?
-          systemPrompt :
-          definition.Description ?? "You are a helpful assistant.";
+        var instructions = resolvedParameters.TryGetValue("systemPrompt", out var systemPromptValue)
+            ? WorkflowExpressionValueConverter.ToStringValue(systemPromptValue)
+            : definition.Description ?? "You are a helpful assistant.";
+
+        if (string.IsNullOrWhiteSpace(instructions))
+        {
+            instructions = definition.Description ?? "You are a helpful assistant.";
+        }
 
         var userMessage = resolvedParameters.TryGetValue("message", out var configuredMessage)
-            && !string.IsNullOrWhiteSpace(configuredMessage)
-            ? configuredMessage
+            ? WorkflowExpressionValueConverter.ToStringValue(configuredMessage)
             : input;
+
+        if (string.IsNullOrWhiteSpace(userMessage))
+        {
+            userMessage = input;
+        }
 
         if (string.IsNullOrWhiteSpace(userMessage))
         {
@@ -691,7 +728,7 @@ public sealed class DefaultAgentRunner(
             {
                 ToolInvocations = toolAnalysis.ToolCalls,
                 ToolErrorDetected = toolAnalysis.HasErrors,
-                ResolvedParameters = resolvedParameters,
+                ResolvedParameters = MaterializeResolvedValues(resolvedParameters),
                 ParameterDebug = parameterDebug,
             };
 
@@ -715,7 +752,7 @@ public sealed class DefaultAgentRunner(
             return (
                 new AgentStepExecutionResult(step.Name, step.Type, fallback)
                 {
-                    ResolvedParameters = resolvedParameters,
+                    ResolvedParameters = MaterializeResolvedValues(resolvedParameters),
                     ParameterDebug = parameterDebug,
                 },
                 conversationContext.ConversationId ?? conversationId,

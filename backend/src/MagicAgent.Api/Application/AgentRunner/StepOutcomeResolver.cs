@@ -158,7 +158,7 @@ internal static class StepOutcomeResolver
             return false;
         }
 
-        var boolean = CoerceBoolean(result.Value);
+        var boolean = WorkflowExpressionValueConverter.ToBoolean(result.Value);
 
         if (result.Value.Kind != WorkflowExpressionValueKind.Boolean)
         {
@@ -213,18 +213,6 @@ internal static class StepOutcomeResolver
         };
 
         return state;
-    }
-
-    private static bool CoerceBoolean(WorkflowExpressionValue value)
-    {
-        return value.Kind switch
-        {
-            WorkflowExpressionValueKind.Boolean => value.BooleanValue ?? false,
-            WorkflowExpressionValueKind.Number => Math.Abs(value.NumberValue ?? 0d) > double.Epsilon,
-            WorkflowExpressionValueKind.String => !string.IsNullOrWhiteSpace(value.StringValue),
-            WorkflowExpressionValueKind.Json => value.JsonValue is not null,
-            _ => false,
-        };
     }
 
     internal readonly record struct StepOutcomeResolution(string? Outcome, string? NextStep, bool EndWorkflow);

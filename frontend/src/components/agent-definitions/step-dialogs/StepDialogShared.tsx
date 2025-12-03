@@ -31,6 +31,7 @@ export interface StepDialogBaseProps {
   onConversationToggle: (event: ChangeEvent<HTMLInputElement>) => void;
   onAddParameter: () => void;
   onRemoveParameter: (entryId: string) => void;
+  onMoveParameter?: (entryId: string, direction: "up" | "down") => void;
   onParameterChange: (
     entryId: string,
     field: "key" | "value"

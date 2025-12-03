@@ -17,14 +17,33 @@ public class ExpressionEvaluatorTests
         typeof(DateWorkflowHelpers),
         typeof(StringWorkflowHelpers),
         typeof(JsonWorkflowHelpers),
+        typeof(ArrayWorkflowHelpers),
     });
 
     private static readonly WorkflowExpressionEvaluator Evaluator =
         new(HelperRegistry, NullLogger<WorkflowExpressionEvaluator>.Instance);
 
-    static ExpressionEvaluatorTests()
+    public ExpressionEvaluatorTests()
     {
         WorkflowPlaceholderResolver.Configure(Evaluator);
+    }
+
+    [Fact]
+    public void HelperOptionalNumberParameter_DefaultsWhenOmitted()
+    {
+        var arrayJson = "[1,2]";
+        var result = Evaluate("addToArray(3, stringToJson(\"" + arrayJson + "\"))");
+
+        result.Should().Be("[1,2,3]");
+    }
+
+    [Fact]
+    public void HelperOptionalNumberParameter_RespectsProvidedValue()
+    {
+        var arrayJson = "[1,2]";
+        var result = Evaluate("addToArray(3, stringToJson(\"" + arrayJson + "\"), 1)");
+
+        result.Should().Be("[1,3,2]");
     }
 
     [Fact]
@@ -172,6 +191,44 @@ public class ExpressionEvaluatorTests
         variableResult.Success.Should().BeTrue(variableResult.ErrorMessage ?? string.Empty);
         variableResult.Value.Kind.Should().Be(WorkflowExpressionValueKind.Number);
         variableResult.Value.NumberValue.Should().Be(3);
+    }
+
+    [Fact]
+    public void Evaluator_UsesArrayHelpers()
+    {
+        var context = CreateContext();
+
+        var addResult = Evaluator.Evaluate("jsonToString(addToArray('c', stringToJson('[\"a\",\"b\"]'), 1))", context);
+        addResult.Success.Should().BeTrue(addResult.ErrorMessage ?? string.Empty);
+        addResult.Value.StringValue.Should().Be("[\"a\",\"c\",\"b\"]");
+
+        var removeResult = Evaluator.Evaluate("jsonToString(removeFromArray('a', stringToJson('[\"a\",\"b\",\"a\"]'), true))", context);
+        removeResult.Success.Should().BeTrue(removeResult.ErrorMessage ?? string.Empty);
+        removeResult.Value.StringValue.Should().Be("[\"b\"]");
+
+        var indexResult = Evaluator.Evaluate("indexOnArray('b', stringToJson('[\"a\",\"b\",\"c\"]'))", context);
+        indexResult.Success.Should().BeTrue(indexResult.ErrorMessage ?? string.Empty);
+        indexResult.Value.NumberValue.Should().Be(1);
+
+        var lastIndexResult = Evaluator.Evaluate("indexOnArray('a', stringToJson('[\"x\",\"a\",\"y\",\"a\"]'), true)", context);
+        lastIndexResult.Success.Should().BeTrue(lastIndexResult.ErrorMessage ?? string.Empty);
+        lastIndexResult.Value.NumberValue.Should().Be(3);
+
+        var replaceResult = Evaluator.Evaluate("jsonToString(replaceElement('a', stringToJson('[\"a\",\"b\",\"a\"]'), 'z', true))", context);
+        replaceResult.Success.Should().BeTrue(replaceResult.ErrorMessage ?? string.Empty);
+        replaceResult.Value.StringValue.Should().Be("[\"z\",\"b\",\"z\"]");
+
+        var subsetResult = Evaluator.Evaluate("jsonToString(subArray(stringToJson('[\"a\",\"b\",\"c\",\"d\"]'), 2))", context);
+        subsetResult.Success.Should().BeTrue(subsetResult.ErrorMessage ?? string.Empty);
+        subsetResult.Value.StringValue.Should().Be("[\"a\",\"b\"]");
+
+        var invertedSubsetResult = Evaluator.Evaluate("jsonToString(subArray(stringToJson('[\"a\",\"b\",\"c\",\"d\"]'), 3, true))", context);
+        invertedSubsetResult.Success.Should().BeTrue(invertedSubsetResult.ErrorMessage ?? string.Empty);
+        invertedSubsetResult.Value.StringValue.Should().Be("[\"b\",\"c\",\"d\"]");
+
+        var concatResult = Evaluator.Evaluate("jsonToString(concatArrays(stringToJson('[\"a\"]'), stringToJson('[\"b\",\"c\"]')))", context);
+        concatResult.Success.Should().BeTrue(concatResult.ErrorMessage ?? string.Empty);
+        concatResult.Value.StringValue.Should().Be("[\"a\",\"b\",\"c\"]");
     }
 
     [Fact]
@@ -329,32 +386,103 @@ public class ExpressionEvaluatorTests
             "placeholders: {0}; errors: {1}; resolved: {2}",
             string.Join(", ", resolution.Debug["message"].Placeholders),
             string.Join("; ", resolution.Debug["message"].ExpressionErrors),
-            resolution.ResolvedValues["message"]);
+            resolution.Values["message"].ToDisplayString());
 
         resolution.Debug["message"].ExpressionErrors.Should().BeEmpty(
             string.Join(", ", resolution.Debug["message"].ExpressionErrors));
-        resolution.ResolvedValues["message"].Should().Be("Resolved=7", resolution.Debug["message"].ResolvedValue);
+        resolution.Values["message"].ToDisplayString().Should().Be("Resolved=7", resolution.Debug["message"].ResolvedValue);
 
         WorkflowPlaceholderResolver.ResolveString(
                 "Resolved=${{ abs(var.value) + param.scale }}",
                 variables,
                 parameters,
-                null,
-                null)
-            .Should().Be("Resolved=7");
-    }
+                stepInput: null,
+                lastStepOutput: null);
 
-    private static WorkflowExpressionContext CreateContext(
-        IReadOnlyDictionary<string, WorkflowExpressionValue>? variables = null,
-        IReadOnlyDictionary<string, WorkflowExpressionValue>? parameters = null,
-        string? stepInput = null,
-        string? lastStepOutput = null)
-    {
-        return new WorkflowExpressionContext(
-            variables ?? new Dictionary<string, WorkflowExpressionValue>(StringComparer.OrdinalIgnoreCase),
-            parameters ?? new Dictionary<string, WorkflowExpressionValue>(StringComparer.OrdinalIgnoreCase),
-            runtimeState: new Dictionary<string, WorkflowExpressionValue>(StringComparer.OrdinalIgnoreCase),
-            stepInput,
-            lastStepOutput);
-    }
+            resolution.Debug["message"].Placeholders.Should().Contain(
+                ["var.value", "param.scale"],
+                "placeholders: {0}; errors: {1}; resolved: {2}",
+                string.Join(", ", resolution.Debug["message"].Placeholders),
+                string.Join("; ", resolution.Debug["message"].ExpressionErrors),
+                resolution.Values["message"].ToDisplayString());
+
+            resolution.Debug["message"].ExpressionErrors.Should().BeEmpty(
+                string.Join(", ", resolution.Debug["message"].ExpressionErrors));
+            resolution.Values["message"].ToDisplayString().Should().Be("Resolved=7", resolution.Debug["message"].ResolvedValue);
+
+            WorkflowPlaceholderResolver.ResolveString(
+                    "Resolved=${{ abs(var.value) + param.scale }}",
+                    variables,
+                    parameters,
+                    null,
+                    null)
+                .Should().Be("Resolved=7");
+        }
+
+        [Fact]
+        public void PlaceholderResolver_PureExpressionReturnsTypedJson()
+        {
+            WorkflowPlaceholderResolver.Configure(Evaluator);
+
+            var source = new Dictionary<string, string>
+            {
+                ["payload"] = "${{ { \"count\": 3 } }}",
+            };
+
+            var resolution = WorkflowPlaceholderResolver.ResolveDictionaryWithDebug(
+                source,
+                variables: new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
+                workflowParameters: null,
+                stepInput: null,
+                lastStepOutput: null);
+
+            resolution.Values["payload"].Kind.Should().Be(WorkflowExpressionValueKind.Json);
+            resolution.Values["payload"].JsonValue!["count"]!.GetValue<int>().Should().Be(3);
+            resolution.Debug["payload"].ResolvedValue.Should().Be("{\"count\":3}");
+        }
+
+        [Fact]
+        public void PlaceholderResolver_MixedLiteralExpressionFallsBackToString()
+        {
+            WorkflowPlaceholderResolver.Configure(Evaluator);
+
+            var source = new Dictionary<string, string>
+            {
+                ["message"] = "Total=${{ 2 + 3 }} items",
+            };
+
+            var resolution = WorkflowPlaceholderResolver.ResolveDictionaryWithDebug(
+                source,
+                variables: new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
+                workflowParameters: null,
+                stepInput: null,
+                lastStepOutput: null);
+
+            resolution.Values["message"].Kind.Should().Be(WorkflowExpressionValueKind.String);
+            resolution.Values["message"].StringValue.Should().Be("Total=5 items");
+            resolution.Debug["message"].ResolvedValue.Should().Be("Total=5 items");
+        }
+
+        private static string Evaluate(string expression)
+        {
+            var context = CreateContext();
+            var result = Evaluator.Evaluate(expression, context);
+
+            result.Success.Should().BeTrue(result.ErrorMessage ?? string.Empty);
+            return result.Value.ToDisplayString();
+        }
+
+        private static WorkflowExpressionContext CreateContext(
+            IReadOnlyDictionary<string, WorkflowExpressionValue>? variables = null,
+            IReadOnlyDictionary<string, WorkflowExpressionValue>? parameters = null,
+            string? stepInput = null,
+            string? lastStepOutput = null)
+        {
+            return new WorkflowExpressionContext(
+                variables ?? new Dictionary<string, WorkflowExpressionValue>(StringComparer.OrdinalIgnoreCase),
+                parameters ?? new Dictionary<string, WorkflowExpressionValue>(StringComparer.OrdinalIgnoreCase),
+                runtimeState: new Dictionary<string, WorkflowExpressionValue>(StringComparer.OrdinalIgnoreCase),
+                stepInput,
+                lastStepOutput);
+        }
 }

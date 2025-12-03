@@ -156,7 +156,7 @@ public sealed class WorkflowHelperRegistry : IWorkflowHelperRegistry
                 var expected = parameterInfos[i];
                 WorkflowExpressionValue? provided = i < arguments.Count ? arguments[i] : null;
 
-                coercedArgs[i] = ConvertArgument(expected.ParameterType, provided);
+                coercedArgs[i] = ConvertArgument(expected, provided);
             }
 
             var result = MethodInfo.Invoke(null, coercedArgs);
@@ -179,10 +179,17 @@ public sealed class WorkflowHelperRegistry : IWorkflowHelperRegistry
             };
         }
 
-        private static object? ConvertArgument(Type expectedType, WorkflowExpressionValue? provided)
+        private static object? ConvertArgument(ParameterInfo expectedParameter, WorkflowExpressionValue? provided)
         {
+            var expectedType = expectedParameter.ParameterType;
+
             if (provided is null)
             {
+                if (expectedParameter.HasDefaultValue)
+                {
+                    return expectedParameter.DefaultValue;
+                }
+
                 return expectedType.IsValueType ? Activator.CreateInstance(expectedType) : null;
             }
 

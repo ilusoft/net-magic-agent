@@ -163,6 +163,7 @@ export function VariableStepDialog(props: StepDialogBaseProps) {
           workflowParameters={props.workflowParameters}
           onAdd={props.onAddParameter}
           onRemove={props.onRemoveParameter}
+          onMove={props.onMoveParameter}
           onParameterChange={props.onParameterChange}
           onPresetChange={handlePresetChange}
           onExpandValue={expandedEditor.open}
@@ -180,6 +181,7 @@ interface VariableParameterSectionProps {
   workflowParameters: KeyValueEntry[];
   onAdd: () => void;
   onRemove: (entryId: string) => void;
+  onMove?: (entryId: string, direction: "up" | "down") => void;
   onParameterChange: StepDialogBaseProps["onParameterChange"];
   onPresetChange: (entryId: string, selection: string) => void;
   onExpandValue: (entryId: string, value: string | undefined) => void;
@@ -192,6 +194,7 @@ function VariableParameterSection({
   workflowParameters,
   onAdd,
   onRemove,
+  onMove,
   onParameterChange,
   onPresetChange,
   onExpandValue,
@@ -239,7 +242,7 @@ function VariableParameterSection({
             <span className="text-right">Actions</span>
           </div>
           <div className="divide-y divide-border/70">
-            {entries.map((entry) => (
+            {entries.map((entry, index) => (
               <VariableParameterRow
                 key={entry.id}
                 entry={entry}
@@ -247,6 +250,9 @@ function VariableParameterSection({
                 onPresetChange={onPresetChange}
                 onExpandValue={onExpandValue}
                 onRemove={onRemove}
+                onMove={onMove}
+                isFirst={index === 0}
+                isLast={index === entries.length - 1}
                 onDataTypeChange={onDataTypeChange}
                 apiBaseUrl={apiBaseUrl}
               />
@@ -268,6 +274,9 @@ interface VariableParameterRowProps {
   onPresetChange: (entryId: string, selection: string) => void;
   onExpandValue: (entryId: string, value: string | undefined) => void;
   onRemove: (entryId: string) => void;
+  onMove?: (entryId: string, direction: "up" | "down") => void;
+  isFirst: boolean;
+  isLast: boolean;
   onDataTypeChange?: (entryId: string, type: WorkflowVariableDataType) => void;
 }
 
@@ -277,6 +286,9 @@ function VariableParameterRow({
   onPresetChange,
   onExpandValue,
   onRemove,
+  onMove,
+  isFirst,
+  isLast,
   onDataTypeChange,
   apiBaseUrl,
 }: VariableParameterRowProps & { apiBaseUrl: string }) {
@@ -500,6 +512,38 @@ function VariableParameterRow({
                   >
                     Expand value editor
                   </button>
+                  {onMove ? (
+                    <>
+                      <button
+                        type="button"
+                        className="block w-full px-3 py-2 text-left text-sm text-foreground/80 hover:bg-muted disabled:opacity-40"
+                        disabled={isFirst}
+                        onClick={() => {
+                          if (isFirst) {
+                            return;
+                          }
+                          onMove(entry.id, "up");
+                          setMenuOpen(false);
+                        }}
+                      >
+                        Move up
+                      </button>
+                      <button
+                        type="button"
+                        className="block w-full px-3 py-2 text-left text-sm text-foreground/80 hover:bg-muted disabled:opacity-40"
+                        disabled={isLast}
+                        onClick={() => {
+                          if (isLast) {
+                            return;
+                          }
+                          onMove(entry.id, "down");
+                          setMenuOpen(false);
+                        }}
+                      >
+                        Move down
+                      </button>
+                    </>
+                  ) : null}
                   <button
                     type="button"
                     className="block w-full px-3 py-2 text-left text-sm text-destructive hover:bg-destructive/10"

@@ -443,6 +443,38 @@ export function useStepDialog({
     });
   }, []);
 
+  const handleMoveParameter = useCallback(
+    (entryId: string, direction: "up" | "down") => {
+      setStepForm((previous) => {
+        if (!previous) {
+          return previous;
+        }
+
+        const currentIndex = previous.parameters.findIndex(
+          (entry) => entry.id === entryId
+        );
+
+        if (currentIndex === -1) {
+          return previous;
+        }
+
+        const targetIndex =
+          direction === "up" ? currentIndex - 1 : currentIndex + 1;
+
+        if (targetIndex < 0 || targetIndex >= previous.parameters.length) {
+          return previous;
+        }
+
+        const nextParameters = [...previous.parameters];
+        const [moved] = nextParameters.splice(currentIndex, 1);
+        nextParameters.splice(targetIndex, 0, moved);
+
+        return { ...previous, parameters: nextParameters };
+      });
+    },
+    []
+  );
+
   const handleParameterDataTypeChange = useCallback(
     (entryId: string, dataType: WorkflowVariableDataType) => {
       setStepForm((previous) =>
@@ -673,6 +705,7 @@ export function useStepDialog({
       onConversationToggle: handleConversationToggle,
       onAddParameter: handleAddParameter,
       onRemoveParameter: handleRemoveParameter,
+      onMoveParameter: handleMoveParameter,
       onParameterChange: handleParameterChange,
       onParameterDataTypeChange: handleParameterDataTypeChange,
       availableTools,

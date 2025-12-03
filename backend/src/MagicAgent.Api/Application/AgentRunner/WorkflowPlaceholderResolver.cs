@@ -1,4 +1,6 @@
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using MagicAgent.Api.Application.Expressions;
 
@@ -31,16 +33,18 @@ internal static partial class WorkflowPlaceholderResolver
     {
         if (source is null || source.Count == 0)
         {
-            return new WorkflowParameterResolution(EmptyDictionary, new Dictionary<string, WorkflowParameterDebugInfo>(Comparer));
+            return new WorkflowParameterResolution(
+                new Dictionary<string, WorkflowExpressionValue>(Comparer),
+                new Dictionary<string, WorkflowParameterDebugInfo>(Comparer));
         }
 
-        var resolved = new Dictionary<string, string>(source.Count, Comparer);
+        var resolved = new Dictionary<string, WorkflowExpressionValue>(source.Count, Comparer);
         var debug = new Dictionary<string, WorkflowParameterDebugInfo>(source.Count, Comparer);
 
         foreach (var kvp in source)
         {
-            var (value, placeholders, expressionErrors) = ResolveStringWithDebug(kvp.Value ?? string.Empty, variables, workflowParameters, stepInput, lastStepOutput);
-            resolved[kvp.Key] = value;
+            var (value, typedValue, placeholders, expressionErrors) = ResolveStringWithDebug(kvp.Value ?? string.Empty, variables, workflowParameters, stepInput, lastStepOutput);
+            resolved[kvp.Key] = typedValue;
             debug[kvp.Key] = new WorkflowParameterDebugInfo(
                 kvp.Value ?? string.Empty,
                 value,
@@ -51,14 +55,14 @@ internal static partial class WorkflowPlaceholderResolver
         return new WorkflowParameterResolution(resolved, debug);
     }
 
-    internal static IReadOnlyDictionary<string, string> ResolveDictionary(
+    internal static IReadOnlyDictionary<string, WorkflowExpressionValue> ResolveDictionary(
         IDictionary<string, string>? source,
         IReadOnlyDictionary<string, string> variables,
         IReadOnlyDictionary<string, string>? workflowParameters,
         string? stepInput,
         string? lastStepOutput)
     {
-        return ResolveDictionaryWithDebug(source, variables, workflowParameters, stepInput, lastStepOutput).ResolvedValues;
+        return ResolveDictionaryWithDebug(source, variables, workflowParameters, stepInput, lastStepOutput).Values;
     }
 
     internal static string ResolveString(
@@ -69,7 +73,7 @@ internal static partial class WorkflowPlaceholderResolver
         string? lastStepOutput)
         => ResolveStringWithDebug(value, variables, workflowParameters, stepInput, lastStepOutput).ResolvedValue;
 
-    private static (string ResolvedValue, IReadOnlyList<string> Placeholders, IReadOnlyList<string> ExpressionErrors) ResolveStringWithDebug(
+    private static (string ResolvedValue, WorkflowExpressionValue TypedValue, IReadOnlyList<string> Placeholders, IReadOnlyList<string> ExpressionErrors) ResolveStringWithDebug(
         string value,
         IReadOnlyDictionary<string, string> variables,
         IReadOnlyDictionary<string, string>? workflowParameters,
@@ -80,7 +84,23 @@ internal static partial class WorkflowPlaceholderResolver
 
         if (string.IsNullOrEmpty(source))
         {
-            return (source, Array.Empty<string>(), Array.Empty<string>());
+            return (source, WorkflowExpressionValue.FromString(source), Array.Empty<string>(), Array.Empty<string>());
+        }
+
+        if (TryExtractSingleExpression(source, out var singleExpressionBody))
+        {
+            var singleExpressionPlaceholders = new List<string>();
+            var singleExpressionErrors = new List<string>();
+            var (typedValue, resolvedValue) = EvaluateSingleExpression(
+                singleExpressionBody,
+                variables,
+                workflowParameters,
+                stepInput,
+                lastStepOutput,
+                singleExpressionPlaceholders,
+                singleExpressionErrors);
+
+            return (resolvedValue, typedValue, singleExpressionPlaceholders, singleExpressionErrors);
         }
 
         var parameterDictionary = workflowParameters ?? EmptyDictionary;
@@ -151,7 +171,7 @@ internal static partial class WorkflowPlaceholderResolver
             ? Array.Empty<string>()
             : placeholderList.ToArray();
 
-        return (resolved, placeholders, expressionErrors);
+        return (resolved, WorkflowExpressionValue.FromString(resolved), placeholders, expressionErrors);
     }
 
     private static string ReplaceExpressionEnvelopes(
@@ -205,6 +225,13 @@ internal static partial class WorkflowPlaceholderResolver
                 continue;
             }
 
+            if (TryParseJsonLiteral(expressionBody, out var jsonLiteral))
+            {
+                builder.Append(jsonLiteral?.ToJsonString() ?? string.Empty);
+                cursor = end + 2;
+                continue;
+            }
+
             var evalContext = BuildExpressionContext(variables, workflowParameters, stepInput, lastStepOutput);
             var result = evaluator.Evaluate(expressionBody, evalContext);
 
@@ -231,6 +258,112 @@ internal static partial class WorkflowPlaceholderResolver
         }
 
         return builder.ToString();
+    }
+
+    private static bool TryParseJsonLiteral(string expressionBody, out JsonNode? jsonNode)
+    {
+        jsonNode = null;
+
+        if (string.IsNullOrWhiteSpace(expressionBody))
+        {
+            return false;
+        }
+
+        var trimmed = expressionBody.Trim();
+        if (!(trimmed.StartsWith("{", StringComparison.Ordinal) || trimmed.StartsWith("[", StringComparison.Ordinal)))
+        {
+            return false;
+        }
+
+        try
+        {
+            jsonNode = JsonNode.Parse(trimmed);
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static bool TryExtractSingleExpression(string source, out string expressionBody)
+    {
+        expressionBody = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(source))
+        {
+            return false;
+        }
+
+        var trimmed = source.Trim();
+
+        if (!trimmed.StartsWith("${{", StringComparison.Ordinal) || !trimmed.EndsWith("}}", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var body = trimmed[3..^2].Trim();
+
+        if (string.IsNullOrEmpty(body))
+        {
+            return false;
+        }
+
+        expressionBody = body;
+
+        var prefixWhitespace = source.Length - source.TrimStart().Length;
+        var suffixWhitespace = source.Length - source.TrimEnd().Length;
+        var trimmedLength = source.Length - prefixWhitespace - suffixWhitespace;
+
+        return trimmedLength == trimmed.Length;
+    }
+
+    private static (WorkflowExpressionValue TypedValue, string ResolvedValue) EvaluateSingleExpression(
+        string expressionBody,
+        IReadOnlyDictionary<string, string> variables,
+        IReadOnlyDictionary<string, string>? workflowParameters,
+        string? stepInput,
+        string? lastStepOutput,
+        List<string> placeholders,
+        List<string> expressionErrors)
+    {
+        if (TryParseJsonLiteral(expressionBody, out var jsonLiteral))
+        {
+            var resolvedJson = jsonLiteral?.ToJsonString() ?? string.Empty;
+            return (WorkflowExpressionValue.FromJson(jsonLiteral), resolvedJson);
+        }
+
+        var evaluator = _expressionEvaluator;
+
+        if (evaluator is null)
+        {
+            var literal = $"${{ {{ {expressionBody} }} }}";
+            return (WorkflowExpressionValue.FromString(literal), literal);
+        }
+
+        var evalContext = BuildExpressionContext(variables, workflowParameters, stepInput, lastStepOutput);
+        var result = evaluator.Evaluate(expressionBody, evalContext);
+
+        if (result.Success && result.Value is not null)
+        {
+            foreach (var reference in result.ReferencedIdentifiers ?? [])
+            {
+                if (!string.IsNullOrWhiteSpace(reference))
+                {
+                    placeholders.Add(reference);
+                }
+            }
+
+            return (result.Value, result.Value.ToDisplayString());
+        }
+
+        if (!string.IsNullOrEmpty(result.ErrorMessage))
+        {
+            expressionErrors.Add($"{expressionBody}: {result.ErrorMessage}");
+        }
+
+        var fallbackLiteral = $"${{ {{ {expressionBody} }} }}";
+        return (WorkflowExpressionValue.FromString(fallbackLiteral), fallbackLiteral);
     }
 
     private static WorkflowExpressionContext BuildExpressionContext(
@@ -304,7 +437,7 @@ internal static partial class WorkflowPlaceholderResolver
     private static Regex PlaceholderPatternRegex => PlaceholderPattern();
 
     internal sealed record WorkflowParameterResolution(
-        IReadOnlyDictionary<string, string> ResolvedValues,
+        IReadOnlyDictionary<string, WorkflowExpressionValue> Values,
         IReadOnlyDictionary<string, WorkflowParameterDebugInfo> Debug);
 
     // WorkflowParameterDebugInfo is defined elsewhere
