@@ -101,6 +101,19 @@ export interface ExpressionValidationState {
   message?: string | null;
 }
 
+export interface ExpressionValidationContextValue {
+  type?: WorkflowVariableDataType;
+  value?: string | null;
+}
+
+export interface ExpressionValidationContextPayload {
+  variables?: Record<string, ExpressionValidationContextValue>;
+  parameters?: Record<string, ExpressionValidationContextValue>;
+  runtimeState?: Record<string, ExpressionValidationContextValue>;
+  stepInput?: ExpressionValidationContextValue;
+  lastStepOutput?: ExpressionValidationContextValue;
+}
+
 export interface ToolFormState {
   id: string;
   type: string;

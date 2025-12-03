@@ -39,4 +39,16 @@ public static class JsonWorkflowHelpers
             WriteIndented = false,
         });
     }
+
+    [WorkflowHelper("arrayLength", ReturnType = WorkflowExpressionValueKind.Number, Description = "Returns the number of items in the provided JSON array.")]
+    [WorkflowHelperParameter("array", Description = "JSON array node (or string that parses to an array).")]
+    public static double ArrayLength(JsonNode? array)
+    {
+        if (array is JsonArray jsonArray)
+        {
+            return jsonArray.Count;
+        }
+
+        return 0d;
+    }
 }

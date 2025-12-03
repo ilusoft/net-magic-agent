@@ -1,6 +1,8 @@
 import type { CSSProperties } from "react";
+import { MarkerType } from "reactflow";
 import type {
   AgentDefinition,
+  AgentNodeHandlePlacement,
   AgentViewLayoutEdge,
   AgentViewLayoutNode,
 } from "../../types/agents";
@@ -59,6 +61,55 @@ const TERMINATION_NODE_HEIGHT =
   typeof TERMINATION_NODE_STYLE.height === "number"
     ? TERMINATION_NODE_STYLE.height
     : 50;
+
+const OUTCOME_EDGE_COLOR = "#d4d4d8";
+const OUTCOME_EDGE_ARROW_COLOR = "#111827";
+
+const OUTCOME_EDGE_STYLE: CSSProperties = {
+  stroke: OUTCOME_EDGE_COLOR,
+  strokeWidth: 1.5,
+};
+
+const OUTCOME_EDGE_MARKER = {
+  type: MarkerType.ArrowClosed,
+  width: 18,
+  height: 18,
+  color: OUTCOME_EDGE_ARROW_COLOR,
+} as const;
+
+const HANDLE_KEYS: (keyof AgentNodeHandlePlacement)[] = [
+  "input",
+  "outcomes",
+  "tools",
+];
+
+const VALID_HANDLE_POSITIONS = new Set(["top", "right", "bottom", "left"]);
+
+function normalizeHandlePlacement(
+  placement?: AgentNodeHandlePlacement | null
+): AgentNodeHandlePlacement | undefined {
+  if (!placement) {
+    return undefined;
+  }
+
+  const normalized: AgentNodeHandlePlacement = {};
+
+  HANDLE_KEYS.forEach((key) => {
+    const value = placement[key];
+
+    if (!value) {
+      return;
+    }
+
+    const normalizedValue = value.toLowerCase();
+
+    if (VALID_HANDLE_POSITIONS.has(normalizedValue)) {
+      normalized[key] = normalizedValue as typeof value;
+    }
+  });
+
+  return Object.keys(normalized).length ? normalized : undefined;
+}
 
 export function buildWorkflowGraph(agent: AgentDefinition): WorkflowGraph {
   const nodes: WorkflowNode[] = [];
@@ -171,6 +222,9 @@ export function buildWorkflowGraph(agent: AgentDefinition): WorkflowGraph {
       const savedLayoutNode =
         layoutPositions[nodeId] ?? layoutPositions[step.name];
       const hasSavedPosition = Boolean(savedLayoutNode);
+      const normalizedHandles = normalizeHandlePlacement(
+        savedLayoutNode?.handles
+      );
       const targetIndex = stepPositions.get(step.name) ?? index;
       const incoming = incomingByStep.get(step.name) ?? [];
       const requiresOffset = incoming.some(
@@ -196,7 +250,7 @@ export function buildWorkflowGraph(agent: AgentDefinition): WorkflowGraph {
           kind: "step",
           stepName: step.name,
           stepType: step.type as StepType,
-          handlePlacement: savedLayoutNode?.handles,
+          handlePlacement: normalizedHandles,
           hasSavedPosition,
         },
         type: "step",
@@ -257,6 +311,8 @@ export function buildWorkflowGraph(agent: AgentDefinition): WorkflowGraph {
           sourceStep: "start",
           controlPoints: layoutEdge?.controlPoints,
         },
+        style: OUTCOME_EDGE_STYLE,
+        markerEnd: OUTCOME_EDGE_MARKER,
       });
     }
   }
@@ -325,6 +381,9 @@ export function buildWorkflowGraph(agent: AgentDefinition): WorkflowGraph {
             layoutPositions[normalizedTarget] ??
             layoutPositions[outcome.nextStep];
           const hasSavedPosition = Boolean(savedPosition);
+          const normalizedHandles = normalizeHandlePlacement(
+            savedPosition?.handles
+          );
           const column = savedPosition
             ? savedPosition.x / HORIZONTAL_SPACING
             : stepColumns.get(outcome.nextStep) ?? 1;
@@ -343,7 +402,7 @@ export function buildWorkflowGraph(agent: AgentDefinition): WorkflowGraph {
               kind: "step",
               stepName: outcome.nextStep,
               stepType: targetStep?.type as StepType | undefined,
-              handlePlacement: savedPosition?.handles,
+              handlePlacement: normalizedHandles,
               hasSavedPosition,
             },
             type: "step",
@@ -402,6 +461,8 @@ export function buildWorkflowGraph(agent: AgentDefinition): WorkflowGraph {
           order: normalizedOrder,
           controlPoints: layoutEdge?.controlPoints,
         },
+        style: OUTCOME_EDGE_STYLE,
+        markerEnd: OUTCOME_EDGE_MARKER,
       });
     });
   });
@@ -417,6 +478,9 @@ export function buildWorkflowGraph(agent: AgentDefinition): WorkflowGraph {
       const savedLayoutNode =
         layoutPositions[nodeId] ?? layoutPositions[tool.id];
       const hasSavedPosition = Boolean(savedLayoutNode);
+      const normalizedHandles = normalizeHandlePlacement(
+        savedLayoutNode?.handles
+      );
       nodes.push({
         id: nodeId,
         position: savedLayoutNode
@@ -430,7 +494,7 @@ export function buildWorkflowGraph(agent: AgentDefinition): WorkflowGraph {
           kind: "tool",
           toolId: tool.id,
           hasSavedPosition,
-          handlePlacement: savedLayoutNode?.handles,
+          handlePlacement: normalizedHandles,
         },
         type: "tool",
       });

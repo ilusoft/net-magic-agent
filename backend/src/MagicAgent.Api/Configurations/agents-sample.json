@@ -13,8 +13,7 @@
           "name": "general chat agent",
           "type": "chat",
           "parameters": {
-            "systemPrompt": "You are an expert french translator agent. You should take any input text provided and translate it to french. The only expected output is the french translation text.",
-            "message": "This is a translation : *** {{input}} ***"
+            "systemPrompt": "You are an expert ${{ var.languages.values[iterator] }} translator agent. You should take any input text provided and translate it. The only expected output is the translated text."
           },
           "variableTypes": {},
           "provider": "azure-openai",
@@ -29,6 +28,16 @@
             {
               "name": "agent-response",
               "nextStep": "set-out-vars",
+              "condition": null,
+              "endWorkflow": false,
+              "order": 2
+            },
+            {
+              "name": "check-languages-length",
+              "nextStep": "increment-iterator",
+              "condition": {
+                "expression": "var.iterator \u003E arrayLength( var.languages.values )"
+              },
               "endWorkflow": false,
               "order": 1
             }
@@ -39,11 +48,12 @@
           "name": "set-initial-vars",
           "type": "setVariables",
           "parameters": {
-            "currentDate": "$preset:LocalDateTime",
-            "originalInput": "{{input}}"
+            "languages": "${{ { \u0022values\u0022: [\u0022spanish\u0022, \u0022french\u0022, \u0022german\u0022, \u0022portuguese\u0022] } }}",
+            "iterator": "0"
           },
           "variableTypes": {
-            "currentDate": "dateTime"
+            "languages": "json",
+            "iterator": "number"
           },
           "provider": "azure-openai",
           "options": {},
@@ -55,6 +65,7 @@
             {
               "name": "go-to-chat",
               "nextStep": "general chat agent",
+              "condition": null,
               "endWorkflow": false,
               "order": 1
             }
@@ -65,7 +76,7 @@
           "name": "set-out-vars",
           "type": "setVariables",
           "parameters": {
-            "combinedOutput": "[{{var.currentDate}}] {{var.originalInput}} ==> {{lastOutput}}"
+            "combinedOutput": "[{{var.currentDate}}] {{var.originalInput}} ==\u003E {{lastOutput}}"
           },
           "variableTypes": {},
           "provider": "azure-openai",
@@ -78,6 +89,7 @@
             {
               "name": "to-echo",
               "nextStep": "output-echo",
+              "condition": null,
               "endWorkflow": false,
               "order": 1
             }
@@ -101,7 +113,36 @@
             {
               "name": "finish",
               "nextStep": null,
+              "condition": null,
               "endWorkflow": true,
+              "order": 1
+            }
+          ],
+          "isStartStep": false
+        },
+        {
+          "name": "increment-iterator",
+          "type": "setVariables",
+          "parameters": {
+            "iterator": "${{ var.iterator \u002B 1 }}"
+          },
+          "variableTypes": {
+            "iterator": "number"
+          },
+          "provider": "azure-openai",
+          "options": {},
+          "conversation": null,
+          "tools": [],
+          "stopOnToolError": false,
+          "inputSource": "usePrevious",
+          "outcomes": [
+            {
+              "name": "continue",
+              "nextStep": "general chat agent",
+              "condition": {
+                "expression": "true"
+              },
+              "endWorkflow": false,
               "order": 1
             }
           ],
@@ -140,6 +181,15 @@
             "x": -25,
             "y": 343,
             "handles": null
+          },
+          "qualify-pricing-production-increment-iterator": {
+            "x": -481,
+            "y": -81,
+            "handles": {
+              "input": "Bottom",
+              "outcomes": "Top",
+              "tools": null
+            }
           }
         },
         "edges": {
@@ -152,7 +202,53 @@
               },
               {
                 "x": 0,
-                "y": -112,
+                "y": -144,
+                "handles": null
+              }
+            ]
+          },
+          "qualify-pricing-production-general chat agent-check-languages-length": {
+            "controlPoints": [
+              {
+                "x": -112,
+                "y": 48,
+                "handles": null
+              },
+              {
+                "x": -368,
+                "y": 48,
+                "handles": null
+              }
+            ]
+          },
+          "qualify-pricing-production-increment-iterator-continue": {
+            "controlPoints": [
+              {
+                "x": -368,
+                "y": -144,
+                "handles": null
+              },
+              {
+                "x": 0,
+                "y": -144,
+                "handles": null
+              }
+            ]
+          },
+          "qualify-pricing-production-general chat agent-agent-response": {
+            "controlPoints": [
+              {
+                "x": 0,
+                "y": 16,
+                "handles": null
+              }
+            ]
+          },
+          "qualify-pricing-production-set-out-vars-to-echo": {
+            "controlPoints": [
+              {
+                "x": 0,
+                "y": 144,
                 "handles": null
               }
             ]
@@ -160,11 +256,11 @@
         },
         "viewport": {
           "position": {
-            "x": 839.9120657445371,
-            "y": 546.0801087187413,
+            "x": 942.7901420982985,
+            "y": 505.7263082822743,
             "handles": null
           },
-          "zoom": 1.2207382073412332
+          "zoom": 0.9356843249451623
         }
       },
       "streaming": null

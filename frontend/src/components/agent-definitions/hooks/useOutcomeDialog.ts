@@ -3,10 +3,13 @@ import type { ChangeEvent, FormEvent } from "react";
 
 import type {
   AgentDefinitionsDocument,
+  AgentDefinition,
   AgentStepDefinition,
   AgentStepOutcomeDefinition,
 } from "../../../types/agents";
 import type {
+  ExpressionValidationContextPayload,
+  ExpressionValidationContextValue,
   ExpressionValidationState,
   OutcomeFormState,
   WorkflowEdge,
@@ -57,6 +60,7 @@ type ExpressionValidationResponse = {
   error?: string | null;
   errorCode?: string | null;
   resultKind?: string | null;
+  referencedIdentifiers?: string[] | null;
 };
 
 export function useOutcomeDialog({
@@ -98,7 +102,10 @@ export function useOutcomeDialog({
   }, []);
 
   const validateExpression = useCallback(
-    async (expression: string): Promise<ExpressionValidationResponse> => {
+    async (
+      expression: string,
+      context?: ExpressionValidationContextPayload
+    ): Promise<ExpressionValidationResponse> => {
       const normalizedBase = apiBaseUrl.endsWith("/")
         ? apiBaseUrl.slice(0, -1)
         : apiBaseUrl;
@@ -111,7 +118,7 @@ export function useOutcomeDialog({
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ expression }),
+            body: JSON.stringify({ expression, context }),
           }
         );
 
@@ -138,7 +145,7 @@ export function useOutcomeDialog({
   );
 
   const scheduleExpressionValidation = useCallback(
-    (expression: string) => {
+    (expression: string, context?: ExpressionValidationContextPayload) => {
       const trimmed = expression.trim();
       const requestId = ++validationRequestId.current;
 
@@ -152,7 +159,7 @@ export function useOutcomeDialog({
 
       setExpressionValidationState({ status: "pending" });
 
-      validateExpression(trimmed).then((result) => {
+      validateExpression(trimmed, context).then((result) => {
         if (validationRequestId.current !== requestId) {
           return;
         }
@@ -373,6 +380,95 @@ export function useOutcomeDialog({
     [draftDocument, activeWorkflowId, buildOutcomeFormState]
   );
 
+  const buildValidationContext = useCallback(
+    (
+      agent: AgentDefinition,
+      sourceStepName?: string
+    ): ExpressionValidationContextPayload => {
+      const payload: ExpressionValidationContextPayload = {
+        runtimeState: {
+          output: { type: "string", value: "" },
+          stepName: { type: "string", value: sourceStepName ?? "" },
+          stepType: { type: "string", value: "" },
+        },
+        stepInput: { type: "string", value: "" },
+        lastStepOutput: { type: "string", value: "" },
+      };
+
+      const variables: Record<string, ExpressionValidationContextValue> = {};
+      agent.steps.forEach((step) => {
+        const declared = step.variableTypes ?? {};
+        Object.entries(declared).forEach(([name, type]) => {
+          if (variables[name]) {
+            return;
+          }
+
+          const value =
+            step.type === "setVariables" ? step.parameters?.[name] : undefined;
+
+          variables[name] = {
+            type,
+            value,
+          };
+        });
+      });
+
+      if (Object.keys(variables).length > 0) {
+        payload.variables = variables;
+      }
+
+      const parameterEntries: Record<string, ExpressionValidationContextValue> =
+        {};
+      Object.entries(agent.defaultParameters ?? {}).forEach(([name, value]) => {
+        parameterEntries[name] = { type: "string", value };
+      });
+
+      if (sourceStepName) {
+        const sourceStep = agent.steps.find(
+          (candidate) => candidate.name === sourceStepName
+        );
+
+        if (sourceStep) {
+          Object.entries(sourceStep.parameters ?? {}).forEach(
+            ([name, value]) => {
+              parameterEntries[name] = { type: "string", value };
+            }
+          );
+
+          if (payload.runtimeState) {
+            payload.runtimeState.stepType = {
+              type: "string",
+              value: sourceStep.type ?? "",
+            };
+          }
+        }
+      }
+
+      if (Object.keys(parameterEntries).length > 0) {
+        payload.parameters = parameterEntries;
+      }
+
+      return payload;
+    },
+    []
+  );
+
+  const validationContext = useMemo(() => {
+    if (!draftDocument || !activeWorkflowId || !outcomeForm) {
+      return undefined;
+    }
+
+    const agent = draftDocument.agents.find(
+      (candidate) => candidate.id === activeWorkflowId
+    );
+
+    if (!agent) {
+      return undefined;
+    }
+
+    return buildValidationContext(agent, outcomeForm.sourceStep);
+  }, [draftDocument, activeWorkflowId, outcomeForm, buildValidationContext]);
+
   useEffect(() => {
     if (!isOpen || !outcomeForm) {
       return;
@@ -382,12 +478,16 @@ export function useOutcomeDialog({
       return;
     }
 
-    scheduleExpressionValidation(outcomeForm.expression ?? "");
+    scheduleExpressionValidation(
+      outcomeForm.expression ?? "",
+      validationContext
+    );
   }, [
     isOpen,
     outcomeForm,
     expressionValidationState.status,
     scheduleExpressionValidation,
+    validationContext,
   ]);
 
   const openForCreation = useCallback(
@@ -478,9 +578,9 @@ export function useOutcomeDialog({
       setOutcomeForm((previous) =>
         previous ? { ...previous, expression: value } : previous
       );
-      scheduleExpressionValidation(value);
+      scheduleExpressionValidation(value, validationContext);
     },
-    [scheduleExpressionValidation]
+    [scheduleExpressionValidation, validationContext]
   );
 
   const handleSubmit = useCallback(
@@ -528,7 +628,8 @@ export function useOutcomeDialog({
       }
 
       const validation = await validateExpression(
-        outcomeForm.expression.trim()
+        outcomeForm.expression.trim(),
+        validationContext
       );
 
       if (!validation.success) {
@@ -614,6 +715,7 @@ export function useOutcomeDialog({
       computeNormalizedOrder,
       ensureUniqueOutcomeOrders,
       expressionValidationState,
+      validationContext,
     ]
   );
 

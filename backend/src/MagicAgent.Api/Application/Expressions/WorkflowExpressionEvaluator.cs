@@ -458,6 +458,7 @@ internal sealed class WorkflowExpressionEvaluator : IWorkflowExpressionEvaluator
                 WorkflowExpressionValueKind.String => double.TryParse(value.StringValue, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed)
                     ? parsed
                     : throw new WorkflowExpressionEvaluationException($"Unable to convert '{value.StringValue}' to number.", "invalid_number"),
+                WorkflowExpressionValueKind.Null => 0d,
                 _ => throw new WorkflowExpressionEvaluationException("Value cannot be converted to number.", "invalid_number"),
             };
         }

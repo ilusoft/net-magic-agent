@@ -150,6 +150,31 @@ public class ExpressionEvaluatorTests
     }
 
     [Fact]
+    public void Evaluator_UsesArrayLengthHelper()
+    {
+        var payload = "{\"items\":[{\"value\":10},{\"value\":20},{\"value\":30}]}";
+        var context = CreateContext(
+            variables: new Dictionary<string, WorkflowExpressionValue>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["payload"] = WorkflowExpressionValue.FromString(payload),
+            });
+
+        var inlineExpression = "arrayLength(stringToJson('[1,2,3,4]'))";
+        var inlineResult = Evaluator.Evaluate(inlineExpression, context);
+
+        inlineResult.Success.Should().BeTrue(inlineResult.ErrorMessage ?? string.Empty);
+        inlineResult.Value.Kind.Should().Be(WorkflowExpressionValueKind.Number);
+        inlineResult.Value.NumberValue.Should().Be(4);
+
+        var variableExpression = "arrayLength(var.payload.items)";
+        var variableResult = Evaluator.Evaluate(variableExpression, context);
+
+        variableResult.Success.Should().BeTrue(variableResult.ErrorMessage ?? string.Empty);
+        variableResult.Value.Kind.Should().Be(WorkflowExpressionValueKind.Number);
+        variableResult.Value.NumberValue.Should().Be(3);
+    }
+
+    [Fact]
     public void Evaluator_UsesBooleanStringHelpers()
     {
         var context = CreateContext();
