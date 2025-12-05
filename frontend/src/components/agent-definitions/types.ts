@@ -4,12 +4,12 @@ import type {
   AgentViewLayoutNode,
   WorkflowHandlePosition,
   WorkflowVariableDataType,
-} from "../../types/agents";
+} from "@/types/agents";
 
 export type {
   WorkflowHandlePosition,
   WorkflowVariableDataType,
-} from "../../types/agents";
+} from "@/types/agents";
 
 export type NodeKind =
   | "start"

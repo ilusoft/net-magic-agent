@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import type { OutcomeFormState } from "../types";
+import type { OutcomeFormState } from "@/components/agent-definitions/types";
 
 interface StepSelectionBase {
   title: string;

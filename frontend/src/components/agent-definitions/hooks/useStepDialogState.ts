@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 
-import type { WorkflowNode } from "../types";
+import type { WorkflowNode } from "@/components/agent-definitions/types";
 
 interface OpenDialogOptions {
   mode: "create" | "edit";

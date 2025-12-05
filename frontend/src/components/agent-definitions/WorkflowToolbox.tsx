@@ -1,7 +1,7 @@
 import { Flag, GitCommitHorizontal, Play, Wrench } from "lucide-react";
 import clsx from "clsx";
 
-import { STEP_TYPE_VISUALS } from "./stepTypeVisuals";
+import { STEP_TYPE_VISUALS } from "@/components/agent-definitions/stepTypeVisuals";
 
 interface WorkflowToolboxProps {
   disabled: boolean;

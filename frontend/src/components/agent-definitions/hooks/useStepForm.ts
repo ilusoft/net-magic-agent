@@ -7,8 +7,8 @@ import {
   type StepFormState,
   type StepType,
   type WorkflowVariableDataType,
-} from "../types";
-import { createKeyValueEntry } from "../util";
+} from "@/components/agent-definitions/types";
+import { createKeyValueEntry } from "@/components/agent-definitions/util";
 
 const STEP_TYPE_PARAMETER_TEMPLATES: Record<StepType, string[]> = {
   agent: ["systemPrompt", "message"],

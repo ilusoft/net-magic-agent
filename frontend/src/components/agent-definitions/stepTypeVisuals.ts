@@ -6,7 +6,7 @@ import {
   Variable as VariableIcon,
 } from "lucide-react";
 
-import type { StepType } from "./types";
+import type { StepType } from "@/components/agent-definitions/types";
 
 export interface StepTypeVisualConfig {
   type: StepType;

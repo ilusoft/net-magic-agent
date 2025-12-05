@@ -6,7 +6,7 @@ import type {
   AgentRunResult,
   AgentStepExecutionResult,
   WorkflowVariableDataType,
-} from "../types/agents";
+} from "@/types/agents";
 
 interface WorkflowExecutionPanelProps {
   runs: AgentRunResult[];
@@ -146,6 +146,7 @@ function renderVariableDebug(
 const VARIABLE_TYPE_LABELS: Record<WorkflowVariableDataType, string> = {
   string: "String",
   number: "Number",
+  boolean: "Boolean",
   dateTime: "Date & Time",
   json: "JSON",
 };

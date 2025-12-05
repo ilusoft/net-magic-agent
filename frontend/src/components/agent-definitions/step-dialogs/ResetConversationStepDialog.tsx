@@ -1,5 +1,5 @@
-import type { StepDialogBaseProps } from "./StepDialogShared";
-import { StandardStepDialog } from "./StepDialogShared";
+import type { StepDialogBaseProps } from "@/components/agent-definitions/step-dialogs/StepDialogShared";
+import { StandardStepDialog } from "@/components/agent-definitions/step-dialogs/StepDialogShared";
 
 export function ResetConversationStepDialog(props: StepDialogBaseProps) {
   return (

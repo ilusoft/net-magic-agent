@@ -1,8 +1,8 @@
 import type { ChangeEventHandler, FormEventHandler } from "react";
 
-import { DialogShell } from "./DialogShell";
-import { ExpressionBuilderButton } from "../agent-definitions/expression-builder/ExpressionBuilderDialog";
-import type { ExpressionValidationState, OutcomeFormState } from "./types";
+import { DialogShell } from "@/components/agent-definitions/DialogShell";
+import { ExpressionBuilderButton } from "@/components/agent-definitions/expression-builder/ExpressionBuilderDialog";
+import type { ExpressionValidationState, OutcomeFormState } from "@/components/agent-definitions/types";
 
 interface OutcomeDialogProps {
   open: boolean;

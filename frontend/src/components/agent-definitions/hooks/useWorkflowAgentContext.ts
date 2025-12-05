@@ -4,9 +4,9 @@ import type {
   AgentDefinition,
   AgentDefinitionsDocument,
   AgentToolDefinition,
-} from "../../../types/agents";
-import type { KeyValueEntry } from "../types";
-import { entriesFromRecord } from "../util";
+} from "@/types/agents";
+import type { KeyValueEntry } from "@/components/agent-definitions/types";
+import { entriesFromRecord } from "@/components/agent-definitions/util";
 
 interface UseWorkflowAgentContextOptions {
   draftDocument: AgentDefinitionsDocument | null;

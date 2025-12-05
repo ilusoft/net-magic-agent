@@ -9,7 +9,8 @@ import {
   useState,
 } from "react";
 
-import { DialogShell } from "../DialogShell";
+import { DialogShell } from "@/components/agent-definitions/DialogShell";
+import { useAuthorizedFetch } from "@/hooks/useAuthorizedFetch";
 
 interface WorkflowHelperParameterDescriptor {
   name: string;
@@ -80,6 +81,7 @@ export function ExpressionBuilderButton({
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const pendingCaretRef = useRef<number | null>(null);
   const isDirectExpression = mode === "direct";
+  const authorizedFetch = useAuthorizedFetch();
 
   useEffect(() => {
     if (open) {
@@ -99,7 +101,7 @@ export function ExpressionBuilderButton({
       setHelpersError(null);
 
       try {
-        const response = await fetch(buildHelpersUrl(apiBaseUrl), {
+        const response = await authorizedFetch(buildHelpersUrl(apiBaseUrl), {
           signal: abortController.signal,
         });
 
@@ -127,7 +129,7 @@ export function ExpressionBuilderButton({
     void loadHelpers();
 
     return () => abortController.abort();
-  }, [apiBaseUrl, helpers.length, open]);
+  }, [apiBaseUrl, authorizedFetch, helpers.length, open]);
 
   const helperCategories = useMemo(() => {
     return helpers.reduce<Record<string, WorkflowHelperDescriptor[]>>(

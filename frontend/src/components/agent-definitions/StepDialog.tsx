@@ -1,10 +1,10 @@
-import { DialogShell } from "./DialogShell";
-import type { StepFormState } from "./types";
-import type { StepDialogBaseProps } from "./step-dialogs/StepDialogShared";
-import { AgentStepDialog } from "./step-dialogs/AgentStepDialog";
-import { EchoStepDialog } from "./step-dialogs/EchoStepDialog";
-import { VariableStepDialog } from "./step-dialogs/VariableStepDialog";
-import { ResetConversationStepDialog } from "./step-dialogs/ResetConversationStepDialog";
+import { DialogShell } from "@/components/agent-definitions/DialogShell";
+import type { StepFormState } from "@/components/agent-definitions/types";
+import type { StepDialogBaseProps } from "@/components/agent-definitions/step-dialogs/StepDialogShared";
+import { AgentStepDialog } from "@/components/agent-definitions/step-dialogs/AgentStepDialog";
+import { EchoStepDialog } from "@/components/agent-definitions/step-dialogs/EchoStepDialog";
+import { VariableStepDialog } from "@/components/agent-definitions/step-dialogs/VariableStepDialog";
+import { ResetConversationStepDialog } from "@/components/agent-definitions/step-dialogs/ResetConversationStepDialog";
 
 interface StepDialogProps extends Omit<StepDialogBaseProps, "stepForm"> {
   stepForm: StepFormState | null;
@@ -55,14 +55,7 @@ export function StepDialog(props: StepDialogProps) {
     case "echo":
       return <EchoStepDialog {...sharedProps} />;
     case "resetConversation":
-      return (
-        <ResetConversationStepDialog
-          {...sharedProps}
-          showConversationToggle={false}
-          showTools={false}
-          showParameters={false}
-        />
-      );
+      return <ResetConversationStepDialog {...sharedProps} />;
     case "agent":
     default:
       return <AgentStepDialog {...sharedProps} />;

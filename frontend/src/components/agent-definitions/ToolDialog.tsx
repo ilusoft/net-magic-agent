@@ -1,5 +1,5 @@
-import { DialogShell } from "./DialogShell";
-import type { ToolFormState } from "./types";
+import { DialogShell } from "@/components/agent-definitions/DialogShell";
+import type { ToolFormState } from "@/components/agent-definitions/types";
 import type { ChangeEventHandler, FormEventHandler } from "react";
 
 interface ToolDialogProps {

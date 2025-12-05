@@ -2,13 +2,13 @@ import { renderHook, act } from "@testing-library/react";
 import type { ChangeEvent } from "react";
 import { describe, it, expect, vi } from "vitest";
 
-import type { AgentDefinitionsDocument } from "../../../../types/agents";
-import type { StepFormState, WorkflowNode } from "../../types";
-import { useWorkflowAgentContext } from "../useWorkflowAgentContext";
-import { useStepDialogState } from "../useStepDialogState";
-import { useStepForm } from "../useStepForm";
-import { useStepDialogOpeners } from "../useStepDialogOpeners";
-import { useStepPersistence } from "../useStepPersistence";
+import type { AgentDefinitionsDocument } from "@/types/agents";
+import type { StepFormState, WorkflowNode } from "@/components/agent-definitions/types";
+import { useWorkflowAgentContext } from "@/components/agent-definitions/hooks/useWorkflowAgentContext";
+import { useStepDialogState } from "@/components/agent-definitions/hooks/useStepDialogState";
+import { useStepForm } from "@/components/agent-definitions/hooks/useStepForm";
+import { useStepDialogOpeners } from "@/components/agent-definitions/hooks/useStepDialogOpeners";
+import { useStepPersistence } from "@/components/agent-definitions/hooks/useStepPersistence";
 
 const createDocument = (): AgentDefinitionsDocument => ({
   agents: [

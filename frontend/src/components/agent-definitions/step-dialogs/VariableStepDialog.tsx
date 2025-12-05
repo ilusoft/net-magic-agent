@@ -14,10 +14,10 @@ import {
   StepDialogContainer,
   StepNameField,
   useExpandedValueEditor,
-} from "./StepDialogShared";
-import type { KeyValueEntry, WorkflowVariableDataType } from "../types";
-import { ExpressionBuilderButton } from "../expression-builder/ExpressionBuilderDialog";
-import { SimpleTooltip } from "../../SimpleTooltip";
+} from "@/components/agent-definitions/step-dialogs/StepDialogShared";
+import type { KeyValueEntry, WorkflowVariableDataType } from "@/components/agent-definitions/types";
+import { ExpressionBuilderButton } from "@/components/agent-definitions/expression-builder/ExpressionBuilderDialog";
+import { SimpleTooltip } from "@/components/SimpleTooltip";
 
 interface VariablePresetOption {
   value: string;

@@ -4,8 +4,8 @@ import type { ChangeEvent, FormEvent } from "react";
 import type {
   AgentDefinitionsDocument,
   AgentToolDefinition,
-} from "../../../types/agents";
-import type { ToolFormState, WorkflowNode } from "../types";
+} from "@/types/agents";
+import type { ToolFormState, WorkflowNode } from "@/components/agent-definitions/types";
 
 type ApplyDocumentUpdate = (
   updater: (draft: AgentDefinitionsDocument) => AgentDefinitionsDocument | void

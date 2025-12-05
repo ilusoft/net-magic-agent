@@ -1,4 +1,4 @@
-import { CustomJsonEditor } from "./CustomJsonEditor";
+import { CustomJsonEditor } from "@/components/agent-definitions/CustomJsonEditor";
 
 interface WorkflowJsonEditorProps {
   value: string;

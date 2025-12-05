@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import type { AgentMessage } from "../types/agents";
+import type { AgentMessage } from "@/types/agents";
 
 interface AgentChatProps {
   conversation: AgentMessage[];

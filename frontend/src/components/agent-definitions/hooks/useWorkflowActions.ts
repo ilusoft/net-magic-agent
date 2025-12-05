@@ -1,11 +1,11 @@
 import { useCallback, useMemo } from "react";
 
-import { isWorkflowDebugLoggingEnabled } from "../utils/workflowDebug";
+import { isWorkflowDebugLoggingEnabled } from "@/components/agent-definitions/utils/workflowDebug";
 
 import type {
   AgentDefinition,
   AgentDefinitionsDocument,
-} from "../../../types/agents";
+} from "@/types/agents";
 
 type ApplyDocumentUpdate = (
   updater: (draft: AgentDefinitionsDocument) => AgentDefinitionsDocument | void

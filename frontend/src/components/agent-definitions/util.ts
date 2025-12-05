@@ -1,4 +1,4 @@
-import type { KeyValueEntry, WorkflowVariableDataType } from "./types";
+import type { KeyValueEntry, WorkflowVariableDataType } from "@/components/agent-definitions/types";
 
 const generateId = () =>
   `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { AgentDefinitionsDocument } from "../../../types/agents";
-import { isWorkflowDebugLoggingEnabled } from "../utils/workflowDebug";
+import type { AgentDefinitionsDocument } from "@/types/agents";
+import { useAuthorizedFetch } from "@/hooks/useAuthorizedFetch";
+import { isWorkflowDebugLoggingEnabled } from "@/components/agent-definitions/utils/workflowDebug";
 
 interface UseAgentDefinitionsDocumentOptions {
   definitions: AgentDefinitionsDocument | null;
@@ -34,6 +35,7 @@ export function useAgentDefinitionsDocument({
   onReload,
   onDefinitionsUpdated,
 }: UseAgentDefinitionsDocumentOptions): AgentDefinitionsDocumentState {
+  const authorizedFetch = useAuthorizedFetch();
   const [jsonDraft, setJsonDraft] = useState("");
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -185,13 +187,16 @@ export function useAgentDefinitionsDocument({
     setSuccessMessage(null);
 
     try {
-      const response = await fetch(`${apiBaseUrl}/api/agents/definitions`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: payloadJson,
-      });
+      const response = await authorizedFetch(
+        `${apiBaseUrl}/api/agents/definitions`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: payloadJson,
+        }
+      );
 
       if (!response.ok) {
         throw new Error(
@@ -213,7 +218,13 @@ export function useAgentDefinitionsDocument({
     } finally {
       setIsSaving(false);
     }
-  }, [apiBaseUrl, documentRef, jsonError, onDefinitionsUpdated]);
+  }, [
+    apiBaseUrl,
+    authorizedFetch,
+    documentRef,
+    jsonError,
+    onDefinitionsUpdated,
+  ]);
 
   return {
     draftDocument: documentRef.current,

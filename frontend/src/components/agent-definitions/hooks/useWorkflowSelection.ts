@@ -2,13 +2,13 @@ import { useCallback, useEffect, useState } from "react";
 import type {
   AgentDefinition,
   AgentDefinitionsDocument,
-} from "../../../types/agents";
-import type { WorkflowFormState } from "../types";
+} from "@/types/agents";
+import type { WorkflowFormState } from "@/components/agent-definitions/types";
 import {
   createKeyValueEntry,
   entriesFromRecord,
   recordFromEntries,
-} from "../util";
+} from "@/components/agent-definitions/util";
 
 type ApplyDocumentUpdate = (
   updater: (draft: AgentDefinitionsDocument) => AgentDefinitionsDocument | void

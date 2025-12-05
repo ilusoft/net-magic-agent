@@ -8,9 +8,10 @@ import type {
   AgentRunResult,
   AgentStepExecutionResult,
   AgentWorkflowResult,
-} from "../types/agents";
-import { AgentChat } from "../components/AgentChat";
-import { WorkflowExecutionPanel } from "../components/WorkflowExecutionPanel";
+} from "@/types/agents";
+import { AgentChat } from "@/components/AgentChat";
+import { WorkflowExecutionPanel } from "@/components/WorkflowExecutionPanel";
+import { useAuthorizedFetch } from "@/hooks/useAuthorizedFetch";
 
 export interface AgentRunnerState {
   selectedAgentId?: string;
@@ -85,6 +86,7 @@ export function AgentRunnerView({
   runnerState,
   setRunnerState,
 }: AgentRunnerViewProps) {
+  const authorizedFetch = useAuthorizedFetch();
   const agents = definitions?.agents ?? [];
   const {
     selectedAgentId,
@@ -191,11 +193,20 @@ export function AgentRunnerView({
           debugError: null,
         }));
 
-        const response = await fetch(
+        const sanitizedHeaders = Object.fromEntries(
+          Object.entries(headers).filter(
+            ([key]) => key.trim().toLowerCase() !== "authorization"
+          )
+        );
+
+        const response = await authorizedFetch(
           `${apiBaseUrl}/api/agents/${agentId}/runs/${conversationIdentifier}/debug`,
           {
             method: "GET",
-            headers,
+            headers:
+              Object.keys(sanitizedHeaders).length > 0
+                ? sanitizedHeaders
+                : undefined,
           }
         );
 
@@ -227,7 +238,7 @@ export function AgentRunnerView({
         }));
       }
     },
-    [apiBaseUrl, setRunnerState]
+    [apiBaseUrl, authorizedFetch, setRunnerState]
   );
 
   useEffect(() => {

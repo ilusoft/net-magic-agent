@@ -1,7 +1,7 @@
-import { useStepDialog } from "./useStepDialog";
-import { useToolDialog } from "./useToolDialog";
-import { useOutcomeDialog } from "./useOutcomeDialog";
-import type { AgentDefinitionsDocument } from "../../../types/agents";
+import { useStepDialog } from "@/components/agent-definitions/hooks/useStepDialog";
+import { useToolDialog } from "@/components/agent-definitions/hooks/useToolDialog";
+import { useOutcomeDialog } from "@/components/agent-definitions/hooks/useOutcomeDialog";
+import type { AgentDefinitionsDocument } from "@/types/agents";
 
 type ApplyDocumentUpdate = (
   updater: (draft: AgentDefinitionsDocument) => AgentDefinitionsDocument | void

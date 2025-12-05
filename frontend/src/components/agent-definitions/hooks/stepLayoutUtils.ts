@@ -1,4 +1,4 @@
-import type { AgentDefinition } from "../../../types/agents";
+import type { AgentDefinition } from "@/types/agents";
 
 export function renameStepReferences(
   agent: AgentDefinition,

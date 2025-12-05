@@ -1,19 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 
+import { useAuthorizedFetch } from "@/hooks/useAuthorizedFetch";
 import type {
   AgentDefinitionsDocument,
   AgentDefinition,
   AgentStepDefinition,
   AgentStepOutcomeDefinition,
-} from "../../../types/agents";
+} from "@/types/agents";
 import type {
   ExpressionValidationContextPayload,
   ExpressionValidationContextValue,
   ExpressionValidationState,
   OutcomeFormState,
   WorkflowEdge,
-} from "../types";
+} from "@/components/agent-definitions/types";
 
 type ApplyDocumentUpdate = (
   updater: (draft: AgentDefinitionsDocument) => AgentDefinitionsDocument | void
@@ -70,6 +71,7 @@ export function useOutcomeDialog({
   applyDocumentUpdate,
   apiBaseUrl,
 }: UseOutcomeDialogOptions): UseOutcomeDialogResult {
+  const authorizedFetch = useAuthorizedFetch();
   const [isOpen, setIsOpen] = useState(false);
   const [mode, setMode] = useState<"create" | "edit">("edit");
   const [dialogTarget, setDialogTarget] = useState<WorkflowEdge | null>(null);
@@ -112,7 +114,7 @@ export function useOutcomeDialog({
         : apiBaseUrl;
 
       try {
-        const response = await fetch(
+        const response = await authorizedFetch(
           `${normalizedBase}/api/workflows/expressions/validate`,
           {
             method: "POST",
@@ -142,7 +144,7 @@ export function useOutcomeDialog({
         };
       }
     },
-    [apiBaseUrl]
+    [apiBaseUrl, authorizedFetch]
   );
 
   const scheduleExpressionValidation = useCallback(

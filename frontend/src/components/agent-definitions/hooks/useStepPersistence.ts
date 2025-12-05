@@ -3,16 +3,16 @@ import { useCallback } from "react";
 import type {
   AgentDefinitionsDocument,
   AgentStepDefinition,
-} from "../../../types/agents";
+} from "@/types/agents";
 import type {
   StepFormState,
   StepType,
   WorkflowVariableDataType,
-} from "../types";
-import { recordFromEntries, variableTypesFromEntries } from "../util";
-import { DEFAULT_STEP_TYPE } from "./useStepForm";
-import { renameStepReferences } from "./stepLayoutUtils";
-import type { ApplyDocumentUpdate } from "./types";
+} from "@/components/agent-definitions/types";
+import { recordFromEntries, variableTypesFromEntries } from "@/components/agent-definitions/util";
+import { DEFAULT_STEP_TYPE } from "@/components/agent-definitions/hooks/useStepForm";
+import { renameStepReferences } from "@/components/agent-definitions/hooks/stepLayoutUtils";
+import type { ApplyDocumentUpdate } from "@/components/agent-definitions/hooks/types";
 
 interface SaveStepArgs {
   activeWorkflowId: string;

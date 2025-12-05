@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { DialogShell } from './DialogShell';
+import { DialogShell } from '@/components/agent-definitions/DialogShell';
 
 interface WorkflowStepSelectorDialogProps {
   open: boolean;

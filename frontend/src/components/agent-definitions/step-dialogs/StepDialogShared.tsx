@@ -7,13 +7,13 @@ import {
 
 import { Maximize2 } from "lucide-react";
 
-import { ExpressionBuilderButton } from "../expression-builder/ExpressionBuilderDialog";
-import { DialogShell } from "../DialogShell";
+import { ExpressionBuilderButton } from "@/components/agent-definitions/expression-builder/ExpressionBuilderDialog";
+import { DialogShell } from "@/components/agent-definitions/DialogShell";
 import {
   type KeyValueEntry,
   type StepFormState,
   type WorkflowVariableDataType,
-} from "../types";
+} from "@/components/agent-definitions/types";
 
 export interface StepDialogBaseProps {
   open: boolean;

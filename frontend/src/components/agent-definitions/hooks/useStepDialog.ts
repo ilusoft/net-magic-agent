@@ -1,21 +1,21 @@
 import { useCallback, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 
-import type { AgentDefinitionsDocument } from "../../../types/agents";
+import type { AgentDefinitionsDocument } from "@/types/agents";
 import {
   type StepFormState,
   type KeyValueEntry,
   type WorkflowVariableDataType,
-} from "../types";
-import { useWorkflowAgentContext } from "./useWorkflowAgentContext";
-import { useStepDialogState } from "./useStepDialogState";
-import { useStepForm } from "./useStepForm";
-import type { ApplyDocumentUpdate } from "./types";
-import { useStepPersistence } from "./useStepPersistence";
+} from "@/components/agent-definitions/types";
+import { useWorkflowAgentContext } from "@/components/agent-definitions/hooks/useWorkflowAgentContext";
+import { useStepDialogState } from "@/components/agent-definitions/hooks/useStepDialogState";
+import { useStepForm } from "@/components/agent-definitions/hooks/useStepForm";
+import type { ApplyDocumentUpdate } from "@/components/agent-definitions/hooks/types";
+import { useStepPersistence } from "@/components/agent-definitions/hooks/useStepPersistence";
 import {
   type StepDialogOpeners,
   useStepDialogOpeners,
-} from "./useStepDialogOpeners";
+} from "@/components/agent-definitions/hooks/useStepDialogOpeners";
 
 interface UseStepDialogOptions {
   draftDocument: AgentDefinitionsDocument | null;

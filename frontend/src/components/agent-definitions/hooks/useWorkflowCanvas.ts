@@ -13,10 +13,10 @@ import type {
   AgentNodeHandlePlacement,
   AgentViewLayoutViewport,
   WorkflowHandlePosition,
-} from "../../../types/agents";
-import type { WorkflowEdge, WorkflowGraph, WorkflowNode } from "../types";
-import { WORKFLOW_EDGE_TYPE } from "../workflowGraph";
-import { isWorkflowDebugLoggingEnabled } from "../utils/workflowDebug";
+} from "@/types/agents";
+import type { WorkflowEdge, WorkflowGraph, WorkflowNode } from "@/components/agent-definitions/types";
+import { WORKFLOW_EDGE_TYPE } from "@/components/agent-definitions/workflowGraph";
+import { isWorkflowDebugLoggingEnabled } from "@/components/agent-definitions/utils/workflowDebug";
 
 const SNAP_GRID_SIZE_VALUE = 16;
 

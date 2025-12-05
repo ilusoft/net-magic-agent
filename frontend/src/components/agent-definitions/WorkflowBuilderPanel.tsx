@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { WorkflowToolbox } from "./WorkflowToolbox";
+import { WorkflowToolbox } from "@/components/agent-definitions/WorkflowToolbox";
 
 interface WorkflowBuilderPanelProps {
   disabled: boolean;

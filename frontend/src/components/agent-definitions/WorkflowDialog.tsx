@@ -1,6 +1,6 @@
 import type { ChangeEventHandler, FormEventHandler } from "react";
-import { DialogShell } from "./DialogShell";
-import type { WorkflowFormState } from "./types";
+import { DialogShell } from "@/components/agent-definitions/DialogShell";
+import type { WorkflowFormState } from "@/components/agent-definitions/types";
 
 interface WorkflowDialogProps {
   open: boolean;

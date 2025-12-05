@@ -3,10 +3,10 @@ import { useCallback } from "react";
 import type {
   AgentDefinition,
   AgentDefinitionsDocument,
-} from "../../../types/agents";
-import type { StepFormState, StepType, WorkflowNode } from "../types";
-import { entriesFromRecord } from "../util";
-import { coerceStepType, ensureParametersForStepType } from "./useStepForm";
+} from "@/types/agents";
+import type { StepFormState, StepType, WorkflowNode } from "@/components/agent-definitions/types";
+import { entriesFromRecord } from "@/components/agent-definitions/util";
+import { coerceStepType, ensureParametersForStepType } from "@/components/agent-definitions/hooks/useStepForm";
 
 interface OpenDialogOptions {
   mode: "create" | "edit";

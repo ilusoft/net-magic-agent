@@ -2,7 +2,7 @@ import clsx from "clsx";
 import type { KeyboardEvent } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 
-import type { AgentDefinition } from "../../types/agents";
+import type { AgentDefinition } from "@/types/agents";
 
 interface WorkflowAgentTabsProps {
   agents: AgentDefinition[];

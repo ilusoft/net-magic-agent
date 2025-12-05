@@ -5,14 +5,14 @@ import type {
   AgentNodeHandlePlacement,
   AgentViewLayoutEdge,
   AgentViewLayoutNode,
-} from "../../types/agents";
+} from "@/types/agents";
 import type {
   WorkflowEdge,
   WorkflowGraph,
   WorkflowNode,
   StepType,
-} from "./types";
-import { isWorkflowDebugLoggingEnabled } from "./utils/workflowDebug";
+} from "@/components/agent-definitions/types";
+import { isWorkflowDebugLoggingEnabled } from "@/components/agent-definitions/utils/workflowDebug";
 
 export const WORKFLOW_EDGE_TYPE = "workflowEdge";
 

@@ -2,37 +2,37 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ReactFlowProvider, type EdgeTypes } from "reactflow";
 import type { EdgeMouseHandler, NodeMouseHandler, NodeTypes } from "reactflow";
 import "reactflow/dist/style.css";
-import type { AgentDefinitionsDocument } from "../types/agents";
-import { StepDialog } from "../components/agent-definitions/StepDialog";
-import { ToolDialog } from "../components/agent-definitions/ToolDialog";
-import { OutcomeDialog } from "../components/agent-definitions/OutcomeDialog";
+import type { AgentDefinitionsDocument } from "@/types/agents";
+import { StepDialog } from "@/components/agent-definitions/StepDialog";
+import { ToolDialog } from "@/components/agent-definitions/ToolDialog";
+import { OutcomeDialog } from "@/components/agent-definitions/OutcomeDialog";
 import {
   WORKFLOW_EDGE_TYPE,
   buildWorkflowGraph,
-} from "../components/agent-definitions/workflowGraph";
-import { WorkflowStepNode } from "../components/agent-definitions/WorkflowStepNode";
-import { WorkflowToolNode } from "../components/agent-definitions/WorkflowToolNode";
+} from "@/components/agent-definitions/workflowGraph";
+import { WorkflowStepNode } from "@/components/agent-definitions/WorkflowStepNode";
+import { WorkflowToolNode } from "@/components/agent-definitions/WorkflowToolNode";
 import type {
   WorkflowEdge,
   WorkflowGraph,
   WorkflowNode,
-} from "../components/agent-definitions/types";
-import { WorkflowStepSelectorDialog } from "../components/agent-definitions/OutcomeCreationPrompt";
-import { useWorkflowActions } from "../components/agent-definitions/hooks/useWorkflowActions";
-import { useAgentDefinitionsDocument } from "../components/agent-definitions/hooks/useAgentDefinitionsDocument";
-import { useWorkflowSelection } from "../components/agent-definitions/hooks/useWorkflowSelection";
-import { useStepSelectionFlow } from "../components/agent-definitions/hooks/useStepSelectionFlow";
-import { WorkflowDialog } from "../components/agent-definitions/WorkflowDialog";
-import { WorkflowGraphEdge } from "../components/agent-definitions/WorkflowEdge";
-import { WorkflowHeader } from "../components/agent-definitions/WorkflowHeader";
-import { WorkflowCanvas } from "../components/agent-definitions/WorkflowCanvas";
-import { useWorkflowCanvas } from "../components/agent-definitions/hooks/useWorkflowCanvas";
-import { WorkflowAgentTabs } from "../components/agent-definitions/WorkflowAgentTabs";
-import { WorkflowJsonEditor } from "../components/agent-definitions/WorkflowJsonEditor";
-import { WorkflowBuilderPanel } from "../components/agent-definitions/WorkflowBuilderPanel";
+} from "@/components/agent-definitions/types";
+import { WorkflowStepSelectorDialog } from "@/components/agent-definitions/OutcomeCreationPrompt";
+import { useWorkflowActions } from "@/components/agent-definitions/hooks/useWorkflowActions";
+import { useAgentDefinitionsDocument } from "@/components/agent-definitions/hooks/useAgentDefinitionsDocument";
+import { useWorkflowSelection } from "@/components/agent-definitions/hooks/useWorkflowSelection";
+import { useStepSelectionFlow } from "@/components/agent-definitions/hooks/useStepSelectionFlow";
+import { WorkflowDialog } from "@/components/agent-definitions/WorkflowDialog";
+import { WorkflowGraphEdge } from "@/components/agent-definitions/WorkflowEdge";
+import { WorkflowHeader } from "@/components/agent-definitions/WorkflowHeader";
+import { WorkflowCanvas } from "@/components/agent-definitions/WorkflowCanvas";
+import { useWorkflowCanvas } from "@/components/agent-definitions/hooks/useWorkflowCanvas";
+import { WorkflowAgentTabs } from "@/components/agent-definitions/WorkflowAgentTabs";
+import { WorkflowJsonEditor } from "@/components/agent-definitions/WorkflowJsonEditor";
+import { WorkflowBuilderPanel } from "@/components/agent-definitions/WorkflowBuilderPanel";
 import { Plus } from "lucide-react";
-import { useWorkflowDialogs } from "../components/agent-definitions/hooks/useWorkflowDialogs";
-import { isWorkflowDebugLoggingEnabled } from "../components/agent-definitions/utils/workflowDebug";
+import { useWorkflowDialogs } from "@/components/agent-definitions/hooks/useWorkflowDialogs";
+import { isWorkflowDebugLoggingEnabled } from "@/components/agent-definitions/utils/workflowDebug";
 
 const EMPTY_WORKFLOW_GRAPH: WorkflowGraph = { nodes: [], edges: [] };
 

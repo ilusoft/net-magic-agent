@@ -11,7 +11,7 @@ import { createPortal } from "react-dom";
 import type { NodeProps } from "reactflow";
 import { Handle, Position } from "reactflow";
 
-import type { WorkflowHandlePosition, WorkflowNodeData } from "./types";
+import type { WorkflowHandlePosition, WorkflowNodeData } from "@/components/agent-definitions/types";
 
 const HANDLE_OPTIONS: {
   value: WorkflowHandlePosition;

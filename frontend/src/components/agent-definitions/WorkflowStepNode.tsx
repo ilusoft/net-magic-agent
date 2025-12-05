@@ -15,8 +15,8 @@ import type {
   WorkflowNodeData,
   StepType,
   WorkflowHandlePosition,
-} from "./types";
-import { getStepTypeVisual } from "./stepTypeVisuals";
+} from "@/components/agent-definitions/types";
+import { getStepTypeVisual } from "@/components/agent-definitions/stepTypeVisuals";
 
 const HANDLE_POSITION_MAP: Record<WorkflowHandlePosition, Position> = {
   top: Position.Top,

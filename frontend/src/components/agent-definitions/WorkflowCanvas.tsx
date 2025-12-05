@@ -15,14 +15,14 @@ import type {
   NodeMouseHandler,
 } from "reactflow";
 import clsx from "clsx";
-import type { AgentViewLayoutViewport } from "../../types/agents";
+import type { AgentViewLayoutViewport } from "@/types/agents";
 import type {
   WorkflowEdge,
   WorkflowEdgeData,
   WorkflowNode,
   WorkflowNodeData,
-} from "./types";
-import { SNAP_GRID_SIZE } from "./hooks/useWorkflowCanvas";
+} from "@/components/agent-definitions/types";
+import { SNAP_GRID_SIZE } from "@/components/agent-definitions/hooks/useWorkflowCanvas";
 import { Grid3x3, SquareIcon } from "lucide-react";
 
 export interface WorkflowCanvasProps {

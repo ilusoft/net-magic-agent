@@ -7,8 +7,8 @@ import {
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { PointerEvent as ReactPointerEvent } from "react";
-import type { AgentViewLayoutNode } from "../../types/agents";
-import type { WorkflowEdgeData } from "./types";
+import type { AgentViewLayoutNode } from "@/types/agents";
+import type { WorkflowEdgeData } from "@/components/agent-definitions/types";
 
 const HANDLE_SIZE = 14;
 
