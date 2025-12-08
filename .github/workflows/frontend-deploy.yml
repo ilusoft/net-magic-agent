@@ -2,12 +2,19 @@ name: Deploy Frontend to Azure Static Web App
 
 on:
   workflow_dispatch:
+    inputs:
+      environment:
+        description: "GitHub Environment to deploy to"
+        required: true
+        default: "production"
 
 permissions:
   contents: read
 
 jobs:
   build-and-deploy:
+    environment:
+      name: ${{ github.event.inputs.environment }}
     runs-on: ubuntu-latest
     env:
       NODE_VERSION: "20.x"
