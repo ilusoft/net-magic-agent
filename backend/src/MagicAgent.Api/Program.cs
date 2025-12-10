@@ -18,11 +18,13 @@ using Serilog;
 Log.Logger = new LoggerConfiguration()
     .Enrich.FromLogContext()
     .WriteTo.Console() // Console sink for bootstrap events
-    .CreateBootstrapLogger(); var builder = WebApplication.CreateBuilder(args);
-Log.Information("Starting Bootstrapping!!");
+    .CreateBootstrapLogger(); 
+
+var builder = WebApplication.CreateBuilder(args);
 
 try
 {
+    Log.Information("Starting Bootstrapping!!");
     builder.Host.AddPrqxConfiguration(builderType: BuilderType.WebAppBff,
         sc =>
         {
@@ -31,7 +33,6 @@ try
         });
 
     builder.Host.AddPrqxLogging(BuilderType.WebAppBff);
-    builder.Services.AddHttpContextAccessor();
     builder.Services.AddPrqxHealthChecks();
     builder.Services.AddPrqxApiVersioning();
     builder.Services.AddPrqxSwagger("Magic Agent API");
