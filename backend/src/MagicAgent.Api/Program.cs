@@ -16,6 +16,7 @@ using PRQXCommon.Core.Versioning;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+LoggingExtensions.AddBootstrapLogging();
 Log.Information("Starting Bootstrapping!!");
 builder.Host.AddPrqxConfiguration(builderType: BuilderType.WebAppBff,
     sc =>
