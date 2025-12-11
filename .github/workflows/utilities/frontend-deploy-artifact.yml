@@ -1,19 +1,6 @@
 name: Deploy Frontend Artifact
 
 on:
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: "GitHub Environment to deploy to"
-        required: true
-        default: "production"
-      artifact_run_id:
-        description: "Workflow run ID that produced the frontend-dist artifact"
-        required: true
-      artifact_name:
-        description: "Name of the uploaded artifact"
-        required: false
-        default: "frontend-dist"
   workflow_call:
     inputs:
       environment:

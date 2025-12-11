@@ -6,7 +6,7 @@ on:
       environment:
         description: "GitHub Environment to build and deploy"
         required: true
-        default: "production"
+        default: "dev"
       artifact_name:
         description: "Override artifact name (optional)"
         required: false

@@ -1,12 +1,6 @@
 name: Build Frontend Artifact
 
 on:
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: "GitHub Environment to deploy to"
-        required: true
-        default: "production"
   workflow_call:
     inputs:
       environment:
