@@ -1,0 +1,35 @@
+{
+  "routes": [
+    {
+      "route": "/*.{html,json,txt}",
+      "headers": {
+        "Cache-Control": "no-cache"
+      }
+    },
+    {
+      "route": "/*.{ico,json,svg}",
+      "headers": {
+        "Cache-Control": "public, max-age=86400, immutable"
+      }
+    },
+    {
+      "route": "/assets/*",
+      "headers": {
+        "Cache-Control": "public, max-age=86400, immutable"
+      }
+    }
+  ],
+  "navigationFallback": {
+    "rewrite": "index.html",
+    "exclude": [
+      "/*.{json,txt}",
+      "/*.{png,jpg,gif,ico,svg,js,map,css}",
+      "/assets/*.{png,jpg,gif,ico,svg,js,map,css,woff2}"
+    ]
+  },
+  "globalHeaders": {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Max-Age": "86400"
+  }
+}
