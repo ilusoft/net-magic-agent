@@ -26,6 +26,7 @@ public class AgentRunsController(
         definitionValueResolver ?? throw new ArgumentNullException(nameof(definitionValueResolver));
 
     [HttpPost]
+    [AllowAnonymous]
     public async Task<IActionResult> RunAsync(
         string agentId,
         [FromBody] RunAgentRequest? request,

@@ -103,7 +103,8 @@ public sealed class DefaultAgentRunner(
                 };
 
                 stepResults.Add(failedResult);
-                return new AgentRunResult(definition.Id, "failed", stepResults, conversationId, DateTimeOffset.UtcNow);
+                var failedRun = new AgentRunResult(definition.Id, "failed", stepResults, conversationId, DateTimeOffset.UtcNow);
+                return await CompleteRunAsync(failedRun, progressSink, cancellationToken).ConfigureAwait(false);
             }
 
             if (definition.Steps.Count == 0)
@@ -114,13 +115,15 @@ public sealed class DefaultAgentRunner(
                 };
 
                 stepResults.Add(failedResult);
-                return new AgentRunResult(definition.Id, "failed", stepResults, conversationId, DateTimeOffset.UtcNow);
+                var failedRun = new AgentRunResult(definition.Id, "failed", stepResults, conversationId, DateTimeOffset.UtcNow);
+                return await CompleteRunAsync(failedRun, progressSink, cancellationToken).ConfigureAwait(false);
             }
         }
 
         if (definition.Steps.Count == 0)
         {
-            return new AgentRunResult(definition.Id, "completed", stepResults, conversationId, DateTimeOffset.UtcNow);
+            var emptyRun = new AgentRunResult(definition.Id, "completed", stepResults, conversationId, DateTimeOffset.UtcNow);
+            return await CompleteRunAsync(emptyRun, progressSink, cancellationToken).ConfigureAwait(false);
         }
 
         var stepLookup = definition.Steps.ToDictionary(s => s.Name, StringComparer.OrdinalIgnoreCase);
@@ -287,15 +290,7 @@ public sealed class DefaultAgentRunner(
         }
 
         var runResult = new AgentRunResult(definition.Id, "completed", stepResults, conversationId, DateTimeOffset.UtcNow);
-
-        if (!string.IsNullOrWhiteSpace(runResult.ConversationId))
-        {
-            await _diagnosticsStore.SaveRunAsync(runResult.ConversationId!, runResult, cancellationToken).ConfigureAwait(false);
-        }
-
-        await progressSink.RunCompletedAsync(runResult, cancellationToken).ConfigureAwait(false);
-
-        return runResult;
+        return await CompleteRunAsync(runResult, progressSink, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<(AgentStepExecutionResult Result, string? ConversationId, JsonElement? ThreadState, JsonElement? StepThreadContext)> ExecuteStepAsync(
@@ -816,5 +811,19 @@ public sealed class DefaultAgentRunner(
     }
 
     private sealed record PassThroughPayload(string? Input, string? Output);
+
+    private async Task<AgentRunResult> CompleteRunAsync(
+        AgentRunResult runResult,
+        IAgentRunProgressSink progressSink,
+        CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(runResult.ConversationId))
+        {
+            await _diagnosticsStore.SaveRunAsync(runResult.ConversationId!, runResult, cancellationToken).ConfigureAwait(false);
+        }
+
+        await progressSink.RunCompletedAsync(runResult, cancellationToken).ConfigureAwait(false);
+        return runResult;
+    }
 
 }
