@@ -1,9 +1,9 @@
 {
   "agents": [
     {
-      "id": "search-inventory-agent",
-      "name": "Inventory Workflow Agent",
-      "description": "Demonstrates a multi-step workflow that routes requests, runs an inventory search, and summarizes results based on step outcomes.",
+      "id": "pricing-assistant-agent",
+      "name": "Pricer Assistant",
+      "description": "Multi-step pricing assistant that researches inventory, creates/updates/deletes pricing groups, and summarizes outcomes using marketplace signals and internal data.",
       "endpoint": "{AZ_FOUNDRY_DISTRO_ENDPOINT}",
       "deployment": "gpt-5-mini",
       "apiKey": "{AZ_FOUNDRY_DISTRO_KEY}",
@@ -179,9 +179,7 @@
           "conversation": {
             "enabled": true
           },
-          "tools": [
-            "create-pricing-group-tools"
-          ],
+          "tools": ["create-pricing-group-tools"],
           "stopOnToolError": false,
           "inputSource": "usePrevious",
           "outcomes": [
@@ -208,9 +206,7 @@
           "conversation": {
             "enabled": true
           },
-          "tools": [
-            "edit-pricing-tool"
-          ],
+          "tools": ["edit-pricing-tool"],
           "stopOnToolError": false,
           "inputSource": "usePrevious",
           "outcomes": [
@@ -446,37 +442,37 @@
       ],
       "ViewLayout": {
         "nodes": {
-          "search-inventory-agent-start": {
+          "pricing-assistant-agent-start": {
             "x": 311,
             "y": -361,
             "handles": null
           },
-          "search-inventory-agent-Security and Classification": {
+          "pricing-assistant-agent-Security and Classification": {
             "x": 192,
             "y": -65,
             "handles": null
           },
-          "search-inventory-agent-Research Agent": {
+          "pricing-assistant-agent-Research Agent": {
             "x": 233,
             "y": 127,
             "handles": null
           },
-          "search-inventory-agent-Create Agent": {
+          "pricing-assistant-agent-Create Agent": {
             "x": 595,
             "y": 127,
             "handles": null
           },
-          "search-inventory-agent-Summarize Research Results": {
+          "pricing-assistant-agent-Summarize Research Results": {
             "x": 183,
             "y": 335,
             "handles": null
           },
-          "search-inventory-agent-Edit Agent": {
+          "pricing-assistant-agent-Edit Agent": {
             "x": 957.5,
             "y": 127,
             "handles": null
           },
-          "search-inventory-agent-tool-create-pricing-group-tools": {
+          "pricing-assistant-agent-tool-create-pricing-group-tools": {
             "x": 768,
             "y": 223,
             "handles": {
@@ -485,7 +481,7 @@
               "tools": null
             }
           },
-          "search-inventory-agent-tool-edit-pricing-tool": {
+          "pricing-assistant-agent-tool-edit-pricing-tool": {
             "x": 1151,
             "y": 223,
             "handles": {
@@ -494,47 +490,47 @@
               "tools": null
             }
           },
-          "search-inventory-agent-termination-finish_research": {
+          "pricing-assistant-agent-termination-finish_research": {
             "x": 311,
             "y": 487,
             "handles": null
           },
-          "search-inventory-agent-Summarize Edition Task": {
+          "pricing-assistant-agent-Summarize Edition Task": {
             "x": 906.5,
             "y": 335,
             "handles": null
           },
-          "search-inventory-agent-termination-finish_edition": {
+          "pricing-assistant-agent-termination-finish_edition": {
             "x": 1015,
             "y": 487,
             "handles": null
           },
-          "search-inventory-agent-Summarize Creation Task": {
+          "pricing-assistant-agent-Summarize Creation Task": {
             "x": 548.5,
             "y": 335,
             "handles": null
           },
-          "search-inventory-agent-termination-finish_creation": {
+          "pricing-assistant-agent-termination-finish_creation": {
             "x": 663,
             "y": 487,
             "handles": null
           },
-          "search-inventory-agent-termination-finish_no_result": {
+          "pricing-assistant-agent-termination-finish_no_result": {
             "x": -9,
             "y": 487,
             "handles": null
           },
-          "search-inventory-agent-No results message": {
+          "pricing-assistant-agent-No results message": {
             "x": -101.5,
             "y": 335,
             "handles": null
           },
-          "search-inventory-agent-Set Initial Variables": {
+          "pricing-assistant-agent-Set Initial Variables": {
             "x": 220.5,
             "y": -225,
             "handles": null
           },
-          "search-inventory-agent-tool-research-data-tools": {
+          "pricing-assistant-agent-tool-research-data-tools": {
             "x": 399,
             "y": 223,
             "handles": {
@@ -543,34 +539,34 @@
               "tools": null
             }
           },
-          "search-inventory-agent-Risk Reset": {
+          "pricing-assistant-agent-Risk Reset": {
             "x": -273,
             "y": 111,
             "handles": null
           },
-          "search-inventory-agent-Risk Message": {
+          "pricing-assistant-agent-Risk Message": {
             "x": -255,
             "y": 239,
             "handles": null
           },
-          "search-inventory-agent-termination-no_qualify_notified": {
+          "pricing-assistant-agent-termination-no_qualify_notified": {
             "x": -409,
             "y": 263,
             "handles": null
           },
-          "search-inventory-agent-termination-risk-end": {
+          "pricing-assistant-agent-termination-risk-end": {
             "x": -185,
             "y": 423,
             "handles": null
           },
-          "search-inventory-agent-No Qualified": {
+          "pricing-assistant-agent-No Qualified": {
             "x": -473.5,
             "y": 111,
             "handles": null
           }
         },
         "edges": {
-          "search-inventory-agent-Security and Classification-default": {
+          "pricing-assistant-agent-Security and Classification-default": {
             "controlPoints": [
               {
                 "x": 176,
@@ -584,7 +580,7 @@
               }
             ]
           },
-          "search-inventory-agent-Security and Classification-risk_handoff": {
+          "pricing-assistant-agent-Security and Classification-risk_handoff": {
             "controlPoints": [
               {
                 "x": 176,
@@ -598,7 +594,7 @@
               }
             ]
           },
-          "search-inventory-agent-Research Agent-tool-PricingTools": {
+          "pricing-assistant-agent-Research Agent-tool-PricingTools": {
             "controlPoints": [
               {
                 "x": 512,
@@ -607,7 +603,7 @@
               }
             ]
           },
-          "search-inventory-agent-Research Agent-no_results": {
+          "pricing-assistant-agent-Research Agent-no_results": {
             "controlPoints": [
               {
                 "x": 16,
@@ -616,7 +612,7 @@
               }
             ]
           },
-          "search-inventory-agent-Research Agent-has_results": {
+          "pricing-assistant-agent-Research Agent-has_results": {
             "controlPoints": [
               {
                 "x": 336,
@@ -625,7 +621,7 @@
               }
             ]
           },
-          "search-inventory-agent-Security and Classification-editor_handoff": {
+          "pricing-assistant-agent-Security and Classification-editor_handoff": {
             "controlPoints": [
               {
                 "x": 1040,
@@ -634,7 +630,7 @@
               }
             ]
           },
-          "search-inventory-agent-Security and Classification-creator_handoff": {
+          "pricing-assistant-agent-Security and Classification-creator_handoff": {
             "controlPoints": [
               {
                 "x": 688,
@@ -643,7 +639,7 @@
               }
             ]
           },
-          "search-inventory-agent-Create Agent-tool-create-pricing-group-tools": {
+          "pricing-assistant-agent-Create Agent-tool-create-pricing-group-tools": {
             "controlPoints": [
               {
                 "x": 848,
@@ -652,7 +648,7 @@
               }
             ]
           },
-          "search-inventory-agent-Edit Agent-tool-edit-pricing-tool": {
+          "pricing-assistant-agent-Edit Agent-tool-edit-pricing-tool": {
             "controlPoints": [
               {
                 "x": 1232,
@@ -661,7 +657,7 @@
               }
             ]
           },
-          "search-inventory-agent-Create Agent-creation_complete": {
+          "pricing-assistant-agent-Create Agent-creation_complete": {
             "controlPoints": [
               {
                 "x": 688,
@@ -670,7 +666,7 @@
               }
             ]
           },
-          "search-inventory-agent-Edit Agent-edition_complete": {
+          "pricing-assistant-agent-Edit Agent-edition_complete": {
             "controlPoints": [
               {
                 "x": 1040,
@@ -679,7 +675,7 @@
               }
             ]
           },
-          "search-inventory-agent-Security and Classification-research_handoff": {
+          "pricing-assistant-agent-Security and Classification-research_handoff": {
             "controlPoints": [
               {
                 "x": 336,
@@ -688,7 +684,7 @@
               }
             ]
           },
-          "search-inventory-agent-Set Initial Variables-init": {
+          "pricing-assistant-agent-Set Initial Variables-init": {
             "controlPoints": [
               {
                 "x": 336,
@@ -697,7 +693,7 @@
               }
             ]
           },
-          "search-inventory-agent-Research Agent-tool-research-data-tools": {
+          "pricing-assistant-agent-Research Agent-tool-research-data-tools": {
             "controlPoints": [
               {
                 "x": 496,
@@ -706,7 +702,7 @@
               }
             ]
           },
-          "search-inventory-agent-Risk Reset-risk-notify": {
+          "pricing-assistant-agent-Risk Reset-risk-notify": {
             "controlPoints": [
               {
                 "x": -160,
@@ -715,7 +711,7 @@
               }
             ]
           },
-          "search-inventory-agent-Risk Message-risk-end": {
+          "pricing-assistant-agent-Risk Message-risk-end": {
             "controlPoints": [
               {
                 "x": -160,
@@ -724,7 +720,7 @@
               }
             ]
           },
-          "search-inventory-agent-No Qualified-no_qualify_notified": {
+          "pricing-assistant-agent-No Qualified-no_qualify_notified": {
             "controlPoints": [
               {
                 "x": -384,
@@ -733,7 +729,7 @@
               }
             ]
           },
-          "search-inventory-agent-start-search-inventory-agent-Set Initial Variables": {
+          "pricing-assistant-agent-start-pricing-assistant-agent-Set Initial Variables": {
             "controlPoints": [
               {
                 "x": 336,
