@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -25,10 +25,12 @@
     <style>
       :root {
         --r-heading-text-transform: none;
-        --r-main-font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
-          Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+        --r-main-font:
+          ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica,
+          Arial, "Apple Color Emoji", "Segoe UI Emoji";
         --r-heading-font: var(--r-main-font);
-        --r-code-font: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+        --r-code-font:
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
           "Liberation Mono", "Courier New", monospace;
 
         /* PRQX deck palette (adjustable). */
@@ -56,7 +58,8 @@
       }
 
       body {
-        background: radial-gradient(
+        background:
+          radial-gradient(
             1200px 600px at 20% 10%,
             rgba(65, 211, 255, 0.18),
             transparent 60%
@@ -333,70 +336,129 @@
 
 ## Review current development streams and future plans
 
-- **Pricing Indicators**: Review cyann spark project results and next steps
-- **Agentic Infrastructure**: PricerQX AI Workflows
-- **Pricing Assistant**: Pricing assisted operations
+- **Pricing Indicators**: Review Cyann Spark project results and next steps
+- **Agentic Infrastructure**: PricerQX AI workflows
+- **Pricing Assistant**: Pricing-assisted operations
 
 <!-- NOTE: Recap how we got here, the previous attempts and the current direction and work streams. -->
 
 ---
 
-# Agenda (45 min)
+# Agenda
 
-- Review current development streams and achievements
-- Pricing Indicators - Next steps
-- AI Platform & Infrastructure needs
-- Agentic Approach (Why, How, When, Where)
-- Agentic Workflows (Architecture overview)
-- Pricing Assistant (Workflow deep dive)
-- Assistant demo 
-- Roadmap + QA 
+- Review Cyann project and achievements (20 Mins)
+- Pricing Indicators – next steps
+- AI Platform & Infrastructure needs (20 Mins)
+- Agentic Approach (Why, What, How, When)
+- Pricing Assistant (Agentic application – small demo) (30 Mins)
+- Roadmap + Q&A (20 Mins)
 
 <!-- NOTE: Review the agenda and adjust at the stakeholders request. -->
 
 ---
 
-<!-- .slide: class="slide-densest" data-deck-margin="0.01" -->
-# Current Development Streams
+<!-- .slide: class="slide-sparse" data-deck-margin="0.01" -->
+# Cyann Development Stream
 
 - Pricing Indicators project
-  - Business selected several production indicators that can help to identify pricing urgency
-  - Together with Cyann team we develop a pipeline to gather the indicators
-  - Working with business and at the cyann team suggestion we develop a formula to calculate the "urgency score" (HOT, COLD, NEUTRAL)
-  - Cyann team developed a dashboard and taking advantage of AI LLMs provided feedback on top of the "urgency score".
-  - The approach demostrated the goal of classification but is short in some key areas:
+  - Business selected several production indicators that can help identify pricing urgency
+  - Together with the Cyann team we developed a pipeline to gather the indicators
+  - Working with the business, and at the Cyann team’s suggestion, we developed a formula to calculate the "urgency score" (HOT, COLD, NEUTRAL)
+  - The Cyann team developed a dashboard and, taking advantage of AI LLMs, provided feedback on top of the "urgency score"
+
+<!-- NOTE: External team was larger than expected and most of the work was done in python which will require re-write to fit our .net stack. -->
+
+---
+
+<!-- .slide: class="slide-sparse" data-deck-margin="0.01" -->
+# Achievements & Lessons Learned
+
+- Pricing Indicators project
+  - Developed an initial mechanism to analyze production indicators
+  - Validated the approach with business stakeholders
+  - Identified gaps and areas for improvement in the analysis
+  - Key areas where the approach fell short:
     - Evaluation of the indicators
     - Feedback loop
     - Use of AI to adapt the weights of the indicators
-  - Conclusion and next steps: 
-    - The concept is functional but requires further development to get to operational mode
-    - We still need to validate the ROI of this approach
-    - The added value of the external team was not fully realized either
+
+<!-- NOTE: External team was larger than expected and most of the work was done in python which will require re-write to fit our .net stack. -->
+
+---
+
+<!-- .slide: class="slide-sparse" data-deck-margin="0.01" -->
+# Conclusion and Next Steps
+
+- The concept is functional but requires further development to reach operational readiness
+- We still need to validate the ROI of this approach
+- The added value of the external team was not fully realized
+- Business can iterate on this approach to arrive at a functional solution that fits real user needs
 
 <!-- NOTE: External team was larger than expected and most of the work was done in python which will require re-write to fit our .net stack. -->
 
 ---
 
 <!-- .slide: class="slide-sparse" -->
-# Current Development Streams
+# Other Development Streams
 
 - Pricer Agentic Assistant
-  - First phase of this development included simions FE based agent using javascript
-  - Another agent was developed using n8n workflows and FE chat adapter with a MCP server writing using node
-  - These agents demonstrated feasability of the concept but were not reliable and have too many architecture wholes.
-  - The agentic approach is still a useful tool but will need an architecture that fits our current stack.
+  - First phase of this development included Simion's FE-based agent using JavaScript
+  - Another agent was developed using n8n workflows and an FE chat adapter with an MCP server written in Node
+  - These agents demonstrated feasibility of the concept but were not reliable and had too many architectural gaps
+  - The agentic approach is still a useful tool but needs an architecture that fits our current stack
 
 <!-- NOTE: Business framing: time-to-decision, consistency, onboarding. Tech framing: cross-service workflows are hard to standardize. -->
 
 ---
-
 <!-- .slide: class="slide-dense" -->
-# What “agentic architecture” means
+# __Why__ “Agentic” AI ?
 
-- **Agent Workflow**: Multi-step coordinator logic that allow the execution of complex tasks (steps, branching, state)
+- **LLM's Single Shot Limitations**: 
+  - Limited context window
+  - No memory of previous interactions
+  - No ability to reason about complex tasks
+- **Agent**: Multi-step coordination logic that allows the execution of complex tasks (steps, branching, state)
+- **Capabilities**: 
+  - Prompt engineering
+  - Tool calling
+  - Memory management
+
+<!-- NOTE: When we did our original PoC many of this elements were missing, specially guardrails, security and observability. -->
+
+---
+<!-- .slide: class="slide-dense" -->
+# __What__ can we do with “Agentic” AI ?
+
+- Automate complex workflows
+- Improve decision-making processes
+  - Use LLM as context provider for complex datasets
+  - Provide explanations and briefs on pricing strategies
+  - Generate pricing recommendations
+- Enhance user experience
+  - Provide personalized recommendations
+  - Allow user to customize its experience with natural language
+- Reduce manual effort
+  - Complete multi-step tasks with single prompts
+
+<!-- NOTE: When we did our original PoC many of this elements were missing, specially guardrails, security and observability. -->
+
+---
+<!-- .slide: class="slide-dense" -->
+# __How__ we can provide "Agentic AI" capabilities : “Agentic Architecture”
+
+- **Agent Workflow**: Multi-step coordinator logic that allows the execution of complex tasks (steps, branching, state)
 - **Agent**: Step in the workflow that invokes a model to perform a simple task (prompt, input, output, model, tools, memory)
 - **Models**: Business grade adapter to access external LLMs
 - **Tools**: Controlled capabilities that will allow agents to perform tasks (internal or external)
+- **Memory**: Persistent storage for agent state and context
+
+<!-- NOTE: When we did our original PoC many of this elements were missing, specially guardrails, security and observability. -->
+
+---
+
+<!-- .slide: class="slide-dense" -->
+#  __How__ to implement “Agentic Architecture” 
+
 - **Infrastructure**:
   - execution
   - observability
@@ -430,10 +492,10 @@
   - Logging, debugging, tracing
 - **.NET Agent workflow runner**
   - multi-threaded execution
-  - hosted as any other of our microservices
+  - hosted like any of our other microservices
   - secured using our auth policies
-- **.NET MCP Server**
-  - work with the same patterns as out current BFFs
++ **.NET MCP Server**
+  - works with the same patterns as our current BFFs
   - uses our auth policies
   - uses our common libraries for service access
 
@@ -441,7 +503,7 @@
 
 ---
 
-# What we built (two projects)
+# Agentic Implementation - Phase 0
 
 - **Magic Agent (Agent Service + UI)**
   - hosts agent definitions (workflows)
@@ -449,7 +511,7 @@
   - streams step-by-step progress
   - provides diagnostics for audit/debug
 
-- **Pricing Tool Server (BFF-style connector)**
+- **Pricing Tool MCP Server (BFF-style connector)**
   - exposes pricing/inventory capabilities as tools
   - normalizes DTOs, validation, errors
   - enforces auth boundaries
@@ -563,27 +625,20 @@
 
 ---
 
-<!-- .slide: class="slide-dense" -->
-# Demo prompts (reliable branch coverage)
+<!-- .slide: class="slide-sparse" -->
+# Demo : Pricer Assistant
 
-- **Research**
-  - “How is my inventory for New York Knicks in january 2026 looking like?”
-  - (follow-up) "Let's analyze that production on Jan-19 and give me some advice on pricing groups for it."
+**PROMPTS SCRIPTS:**
 
-- **Delete**
-  - “Delete all pricing groups in this production.”
-  
-- **Create**
-  - “Create 3 new groups for this production where we separate tickets by sections (100's , 200's and 400's) suggest the floor and ceiling and the increment to keep them competitive. All in simulation mode.”
+- How is my inventory for this weekend looking like?
+- Give me more details and advice on Shane Gillis (1/24) event
+- Let's create 3 groups in simulation mode.
+- Let's ensure the price of each ticket in the groups is not the same. increase each ticket by $1 in the group.
+- Let's remove all pricing groups for this event
 
-- **Edit**
-  - “Let's increase the ceiling of all those groups by $100 and lower the floor by $50.”
-
-
-<!-- NOTE: Have a known pricingGroupId ready if you want to demo edit/delete live. -->
+<!-- NOTE: Keep demo short. The deck is the main deliverable. Use 1 workflow path if you’re time constrained. -->
 
 ---
-
 <!-- .slide: class="slide-dense" -->
 # Next Phase - Pricing Assistant
 
@@ -595,8 +650,8 @@
   - Personalized memories
 - Outcomes:
   - faster research
-  - open door to other user actions not supported by the UI
-  - allow user for customized interactions and presets
+  - opens the door to other user actions not supported by the UI
+  - allows users customized interactions and presets
 
 <!-- NOTE: Discuss possibilities to instrumentalize and productize the agentic service in pricing. -->
 
@@ -606,7 +661,7 @@
 # Production viability
 ## (governance & safety)
 
-- **Gardrails**: using azure AI Foundry policies we can enforce:
+- **Guardrails**: using Azure AI Foundry policies we can enforce:
   - Content safety
   - Model selection
   - Output safety
@@ -638,18 +693,18 @@
 <!-- .slide: class="slide-sparse" -->
 # Platform evolution
 
-- Simplify UI through targeted human-agent interactions
+- Simplify the UI through targeted human-agent interactions
 - Domain teams publish tool servers (BFF-style)
-- Enhance user experience with less cluttered UI's and richer responses to user data requests
-- Mobile, voice, sms and other possible channels to communicate with the system.
-- Add human intelligence stored in system memories to perform tailored brokers tasks.
+- Enhance user experience with less cluttered UIs and richer responses to user data requests
+- Mobile, voice, SMS, and other channels to communicate with the system
+- Add human intelligence stored in system memories to perform tailored broker tasks
 
 <!-- NOTE: This answers “how does it evolve into microservices architecture?” with ownership + standards. -->
 
 ---
 
 <!-- .slide: class="slide-sparse" -->
-# Questions ? 
+# Questions? 
 
 <!-- NOTE: Close with clear decisions. -->
           </textarea>
@@ -732,7 +787,7 @@
 
         // Convert ```mermaid code blocks to <div class="mermaid">...</div>
         const mermaidBlocks = slidesRoot.querySelectorAll(
-          "pre code.language-mermaid, pre code.mermaid"
+          "pre code.language-mermaid, pre code.mermaid",
         );
 
         mermaidBlocks.forEach((codeEl, index) => {
