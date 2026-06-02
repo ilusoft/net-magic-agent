@@ -1,7 +1,5 @@
 using MagicAgent.Api.Application.AgentRunner;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using PRQXCommon.Core.Authorization;
 
 namespace MagicAgent.Api.Controllers;
 
@@ -26,7 +24,6 @@ public class AgentRunsController(
         definitionValueResolver ?? throw new ArgumentNullException(nameof(definitionValueResolver));
 
     [HttpPost]
-    [AllowAnonymous]
     public async Task<IActionResult> RunAsync(
         string agentId,
         [FromBody] RunAgentRequest? request,
@@ -59,7 +56,6 @@ public class AgentRunsController(
         }
     }
 
-    [Authorize(Policy = PrqxPolicies.PolicyAuthOnlyAdmin)]
     [HttpGet("{conversationId}/debug")]
     public async Task<IActionResult> GetConversationDiagnosticsAsync(
         string conversationId,

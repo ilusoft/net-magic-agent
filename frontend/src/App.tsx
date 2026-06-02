@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import "@/index.css";
-import { useAuthorizedFetch } from "@/hooks/useAuthorizedFetch";
-import { useAuth } from "@/auth/AuthProvider";
 import type { AgentDefinitionsDocument } from "@/types/agents";
 import { AgentDefinitionsView } from "@/views/AgentDefinitionsView";
 import { AgentRunnerView } from "@/views/AgentRunnerView";
@@ -53,15 +51,6 @@ function loadRunnerState(): AgentRunnerState {
 }
 
 function App() {
-  const authorizedFetch = useAuthorizedFetch();
-  const {
-    account,
-    isAuthenticated,
-    isLoading: authLoading,
-    error: authError,
-    login,
-    logout,
-  } = useAuth();
   const [activeView, setActiveView] = useState<ActiveView>("editor");
   const [definitions, setDefinitions] =
     useState<AgentDefinitionsDocument | null>(null);
@@ -91,9 +80,7 @@ function App() {
     setDefinitionsError(null);
 
     try {
-      const response = await authorizedFetch(
-        `${API_BASE_URL}/api/agents/definitions`
-      );
+      const response = await fetch(`${API_BASE_URL}/api/agents/definitions`);
 
       if (!response.ok) {
         throw new Error(
@@ -112,59 +99,25 @@ function App() {
     } finally {
       setLoadingDefs(false);
     }
-  }, [authorizedFetch]);
+  }, []);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      setDefinitions(null);
-      setDefinitionsError(null);
-      return;
-    }
-
     loadDefinitions();
-  }, [isAuthenticated, loadDefinitions]);
+  }, [loadDefinitions]);
 
   const handleDefinitionsUpdated = (document: AgentDefinitionsDocument) => {
     setDefinitions(document);
   };
 
   const handleReloadDefinitions = useCallback(async () => {
-    if (!isAuthenticated) {
-      return;
-    }
-
     await loadDefinitions();
-  }, [isAuthenticated, loadDefinitions]);
+  }, [loadDefinitions]);
 
   const content = useMemo(() => {
-    if (authLoading) {
+    if (loadingDefs) {
       return (
         <div className="rounded-md border border-dashed border-border bg-card/40 p-8 text-center text-sm text-foreground/70">
-          Checking Microsoft sign-in…
-        </div>
-      );
-    }
-
-    if (!isAuthenticated) {
-      return (
-        <div className="flex flex-col items-center gap-4 rounded-md border border-dashed border-border bg-card/40 p-10 text-center">
-          <div>
-            <h2 className="text-lg font-semibold">Sign in required</h2>
-            <p className="mt-1 text-sm text-foreground/70">
-              Connect with your Microsoft account to load workflows and edit
-              agent definitions.
-            </p>
-          </div>
-          {authError ? (
-            <p className="text-sm text-destructive">{authError}</p>
-          ) : null}
-          <button
-            type="button"
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
-            onClick={() => login()}
-          >
-            Sign in with Microsoft
-          </button>
+          Loading agent definitions…
         </div>
       );
     }
@@ -194,28 +147,13 @@ function App() {
     );
   }, [
     activeView,
-    authError,
-    authLoading,
     definitions,
     definitionsError,
     handleDefinitionsUpdated,
     handleReloadDefinitions,
-    isAuthenticated,
     loadingDefs,
-    login,
     runnerState,
   ]);
-
-  const accountLabel =
-    account?.name?.trim() ||
-    account?.username ||
-    account?.homeAccountId ||
-    "Microsoft account";
-  const authStatus = authLoading
-    ? "Checking status…"
-    : isAuthenticated
-    ? "Signed in"
-    : "Not signed in";
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -240,21 +178,6 @@ function App() {
               Agent Runner
             </HeaderButton>
           </nav>
-
-          <div className="flex flex-col items-end gap-1 text-right">
-            <div className="text-sm font-medium">{accountLabel}</div>
-            <div className="text-xs text-foreground/60">{authStatus}</div>
-            {isAuthenticated ? (
-              <button
-                type="button"
-                className="text-xs text-primary underline decoration-dotted underline-offset-2 hover:text-primary/80"
-                onClick={() => logout()}
-                disabled={authLoading}
-              >
-                Sign out
-              </button>
-            ) : null}
-          </div>
         </div>
       </header>
 

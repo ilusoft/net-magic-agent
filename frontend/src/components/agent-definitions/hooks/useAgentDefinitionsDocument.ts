@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AgentDefinitionsDocument } from "@/types/agents";
-import { useAuthorizedFetch } from "@/hooks/useAuthorizedFetch";
 import { isWorkflowDebugLoggingEnabled } from "@/components/agent-definitions/utils/workflowDebug";
 
 interface UseAgentDefinitionsDocumentOptions {
@@ -35,7 +34,6 @@ export function useAgentDefinitionsDocument({
   onReload,
   onDefinitionsUpdated,
 }: UseAgentDefinitionsDocumentOptions): AgentDefinitionsDocumentState {
-  const authorizedFetch = useAuthorizedFetch();
   const [jsonDraft, setJsonDraft] = useState("");
   const [jsonError, setJsonError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -187,7 +185,7 @@ export function useAgentDefinitionsDocument({
     setSuccessMessage(null);
 
     try {
-      const response = await authorizedFetch(
+      const response = await fetch(
         `${apiBaseUrl}/api/agents/definitions`,
         {
           method: "PUT",
@@ -220,7 +218,6 @@ export function useAgentDefinitionsDocument({
     }
   }, [
     apiBaseUrl,
-    authorizedFetch,
     documentRef,
     jsonError,
     onDefinitionsUpdated,

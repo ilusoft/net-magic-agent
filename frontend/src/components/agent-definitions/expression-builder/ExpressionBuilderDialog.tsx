@@ -10,7 +10,6 @@ import {
 } from "react";
 
 import { DialogShell } from "@/components/agent-definitions/DialogShell";
-import { useAuthorizedFetch } from "@/hooks/useAuthorizedFetch";
 
 interface WorkflowHelperParameterDescriptor {
   name: string;
@@ -45,7 +44,7 @@ function insertTextAtSelection(
 }
 
 function wrapWithExpressionEnvelope(text: string): string {
-  return `\$\{\{ ${text ?? ""} \}}`;
+  return `\${{ ${text ?? ""} }}`;
 }
 
 function isWrappedExpression(text: string): boolean {
@@ -54,7 +53,7 @@ function isWrappedExpression(text: string): boolean {
 }
 
 function unwrapExpressionEnvelope(text: string): string {
-  const match = text.match(/^\s*\$\{\{\s*(.*)\s*\}\}\s*$/s);
+  const match = text.match(/^\s*\${{s*(.*)\s*}}\s*$/s);
   return match ? match[1] ?? "" : text;
 }
 
@@ -81,7 +80,6 @@ export function ExpressionBuilderButton({
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const pendingCaretRef = useRef<number | null>(null);
   const isDirectExpression = mode === "direct";
-  const authorizedFetch = useAuthorizedFetch();
 
   useEffect(() => {
     if (open) {
@@ -101,7 +99,7 @@ export function ExpressionBuilderButton({
       setHelpersError(null);
 
       try {
-        const response = await authorizedFetch(buildHelpersUrl(apiBaseUrl), {
+        const response = await fetch(buildHelpersUrl(apiBaseUrl), {
           signal: abortController.signal,
         });
 
@@ -129,7 +127,7 @@ export function ExpressionBuilderButton({
     void loadHelpers();
 
     return () => abortController.abort();
-  }, [apiBaseUrl, authorizedFetch, helpers.length, open]);
+  }, [apiBaseUrl, helpers.length, open]);
 
   const helperCategories = useMemo(() => {
     return helpers.reduce<Record<string, WorkflowHelperDescriptor[]>>(

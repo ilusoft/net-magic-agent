@@ -11,7 +11,7 @@ import type {
 } from "@/types/agents";
 import { AgentChat } from "@/components/AgentChat";
 import { WorkflowExecutionPanel } from "@/components/WorkflowExecutionPanel";
-import { useAuthorizedFetch } from "@/hooks/useAuthorizedFetch";
+
 
 export interface AgentRunnerState {
   selectedAgentId?: string;
@@ -86,7 +86,6 @@ export function AgentRunnerView({
   runnerState,
   setRunnerState,
 }: AgentRunnerViewProps) {
-  const authorizedFetch = useAuthorizedFetch();
   const agents = definitions?.agents ?? [];
   const {
     selectedAgentId,
@@ -182,31 +181,17 @@ export function AgentRunnerView({
   }, [authHeaderName, authHeaderValue]);
 
   const loadDiagnostics = useCallback(
-    async (
-      agentId: string,
-      conversationIdentifier: string,
-      headers: Record<string, string>
-    ) => {
+    async (agentId: string, conversationIdentifier: string) => {
       try {
         setRunnerState((previous) => ({
           ...previous,
           debugError: null,
         }));
 
-        const sanitizedHeaders = Object.fromEntries(
-          Object.entries(headers).filter(
-            ([key]) => key.trim().toLowerCase() !== "authorization"
-          )
-        );
-
-        const response = await authorizedFetch(
+        const response = await fetch(
           `${apiBaseUrl}/api/agents/${agentId}/runs/${conversationIdentifier}/debug`,
           {
             method: "GET",
-            headers:
-              Object.keys(sanitizedHeaders).length > 0
-                ? sanitizedHeaders
-                : undefined,
           }
         );
 
@@ -238,7 +223,7 @@ export function AgentRunnerView({
         }));
       }
     },
-    [apiBaseUrl, authorizedFetch, setRunnerState]
+    [apiBaseUrl, setRunnerState]
   );
 
   useEffect(() => {
@@ -317,11 +302,7 @@ export function AgentRunnerView({
             conversationId: result.conversationId ?? null,
           }));
 
-          await loadDiagnostics(
-            selectedAgentId,
-            result.conversationId,
-            authHeaders
-          );
+          await loadDiagnostics(selectedAgentId, result.conversationId);
         }
 
         setRunnerState((previous) => ({
@@ -372,11 +353,7 @@ export function AgentRunnerView({
           }));
 
           if (runResult.conversationId) {
-            await loadDiagnostics(
-              selectedAgentId,
-              runResult.conversationId,
-              authHeaders
-            );
+            await loadDiagnostics(selectedAgentId, runResult.conversationId);
           }
         };
 

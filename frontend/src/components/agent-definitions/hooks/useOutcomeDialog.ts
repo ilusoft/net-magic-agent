@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 
-import { useAuthorizedFetch } from "@/hooks/useAuthorizedFetch";
 import type {
   AgentDefinitionsDocument,
   AgentDefinition,
@@ -71,7 +70,6 @@ export function useOutcomeDialog({
   applyDocumentUpdate,
   apiBaseUrl,
 }: UseOutcomeDialogOptions): UseOutcomeDialogResult {
-  const authorizedFetch = useAuthorizedFetch();
   const [isOpen, setIsOpen] = useState(false);
   const [mode, setMode] = useState<"create" | "edit">("edit");
   const [dialogTarget, setDialogTarget] = useState<WorkflowEdge | null>(null);
@@ -114,7 +112,7 @@ export function useOutcomeDialog({
         : apiBaseUrl;
 
       try {
-        const response = await authorizedFetch(
+        const response = await fetch(
           `${normalizedBase}/api/workflows/expressions/validate`,
           {
             method: "POST",
@@ -144,7 +142,7 @@ export function useOutcomeDialog({
         };
       }
     },
-    [apiBaseUrl, authorizedFetch]
+    [apiBaseUrl]
   );
 
   const scheduleExpressionValidation = useCallback(

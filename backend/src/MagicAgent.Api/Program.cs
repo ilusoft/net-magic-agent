@@ -3,20 +3,8 @@ using System.Text.Json.Serialization;
 using MagicAgent.Api.Application.AgentRunner;
 using MagicAgent.Api.Application.Expressions;
 using MagicAgent.Api.Infrastructure.AgentRunner;
-using Microsoft.Extensions.Logging;
-using PRQXCommon.Core.Authentication;
-using PRQXCommon.Core.Authorization;
-using PRQXCommon.Core.Bff;
-using PRQXCommon.Core.Configuration;
-using PRQXCommon.Core.Cors;
-using PRQXCommon.Core.Enums;
-using PRQXCommon.Core.HealthCheck;
-using PRQXCommon.Core.Logging;
-using PRQXCommon.Core.Swagger;
-using PRQXCommon.Core.Versioning;
 using Serilog;
 using Serilog.Events;
-using Serilog.Extensions.Logging;
 
 Log.Logger = new LoggerConfiguration()
     .Enrich.FromLogContext()
@@ -28,21 +16,11 @@ var builder = WebApplication.CreateBuilder(args);
 try
 {
     Log.Information("Starting Bootstrapping!!");
-    builder.Host.AddPrqxConfiguration(builderType: BuilderType.WebAppBff,
-        sc =>
-        {
-            sc.AddPrqxOption<AzureAdSettings>();
-            sc.AddPrqxOption<BffSettings>();
-        });
 
     Log.Logger = BuildConfiguredLogger(builder.Configuration);
 
     builder.Logging.ClearProviders();
     builder.Logging.AddSerilog(Log.Logger, dispose: true);
-    builder.Services.AddPrqxHealthChecks();
-    builder.Services.AddPrqxApiVersioning();
-    builder.Services.AddPrqxSwagger("Magic Agent API");
-    builder.Services.AddPrqxCors();
 
     builder.Services
         .AddControllers()
@@ -55,8 +33,34 @@ try
         });
 
     builder.Services.AddHttpContextAccessor();
-    builder.Services.AddPrqxAuthentication();
-    builder.Services.AddPrqxAuthorization(BuilderType.WebAppBff);
+
+    builder.Services.AddCors(options =>
+    {
+        var allowedOrigins = builder.Configuration.GetValue<string>("AllowedOrigins", "");
+        var origins = allowedOrigins
+            .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(o => !string.IsNullOrEmpty(o))
+            .ToArray();
+
+        if (origins.Length > 0)
+        {
+            options.AddDefaultPolicy(policy =>
+            {
+                policy.WithOrigins(origins)
+                      .AllowAnyHeader()
+                      .AllowAnyMethod();
+            });
+        }
+        else
+        {
+            options.AddDefaultPolicy(policy =>
+            {
+                policy.AllowAnyOrigin()
+                      .AllowAnyHeader()
+                      .AllowAnyMethod();
+            });
+        }
+    });
 
     builder.Services.Configure<AgentDefinitionsOptions>(builder.Configuration.GetSection("AgentDefinitions"));
     builder.Services.AddSingleton<IAgentDefinitionsProvider, FileAgentDefinitionsProvider>();
@@ -71,14 +75,9 @@ try
 
     Log.Information("Starting Services!!");
 
-    app.UsePrqxConfiguration();
-    app.UsePrqxExceptionHandler();
-    app.UsePrqxHealthChecks();
-    app.UsePrqxSwagger();
 
     app.UseRouting();
-    app.UseCors(CorsConstants.PolicyAdmin);
-    app.UsePrqxAuthorization();
+    app.UseCors();
     app.MapControllers();
 
     Log.Information("App ready to run!!");
@@ -126,17 +125,17 @@ static LogEventLevel ParseLogEventLevel(string? configuredLevel, LogEventLevel f
         return fallback;
     }
 
-    if (Enum.TryParse<Microsoft.Extensions.Logging.LogLevel>(configuredLevel, ignoreCase: true, out var microsoftLevel))
+    if (Enum.TryParse<LogLevel>(configuredLevel, ignoreCase: true, out var microsoftLevel))
     {
         return microsoftLevel switch
         {
-            Microsoft.Extensions.Logging.LogLevel.Trace => LogEventLevel.Verbose,
-            Microsoft.Extensions.Logging.LogLevel.Debug => LogEventLevel.Debug,
-            Microsoft.Extensions.Logging.LogLevel.Information => LogEventLevel.Information,
-            Microsoft.Extensions.Logging.LogLevel.Warning => LogEventLevel.Warning,
-            Microsoft.Extensions.Logging.LogLevel.Error => LogEventLevel.Error,
-            Microsoft.Extensions.Logging.LogLevel.Critical => LogEventLevel.Fatal,
-            Microsoft.Extensions.Logging.LogLevel.None => LogEventLevel.Fatal,
+          LogLevel.Trace => LogEventLevel.Verbose,
+            LogLevel.Debug => LogEventLevel.Debug,
+            LogLevel.Information => LogEventLevel.Information,
+            LogLevel.Warning => LogEventLevel.Warning,
+            LogLevel.Error => LogEventLevel.Error,
+            LogLevel.Critical => LogEventLevel.Fatal,
+            LogLevel.None => LogEventLevel.Fatal,
             _ => fallback
         };
     }
