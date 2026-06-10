@@ -11,3 +11,9 @@ backend/src/MagicAgent.Api/appsettings.*.json
 
 # Local ASP.NET launch profiles
 **/Properties/launchSettings.json
+
+#Python Cache
+backend-py/.mypy_cache
+backend-py/.pytest_cache
+**/__pycache__/
+
